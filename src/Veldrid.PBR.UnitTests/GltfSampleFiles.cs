@@ -11,15 +11,12 @@ namespace Veldrid.PBR
         {
             get
             {
-                var roolFolder = Path.GetFullPath(Path.Combine(typeof(GltfSampleFiles).Assembly.Location, @"..\..\..\..\..\..\modules\glTF-Sample-Models\2.0\"));
+                var roolFolder = Path.GetFullPath(Path.Combine(typeof(GltfSampleFiles).Assembly.Location,
+                    @"..\..\..\..\..\..\modules\glTF-Sample-Models\2.0\"));
                 foreach (var file in Directory.GetFiles(roolFolder, "*.gltf", SearchOption.AllDirectories))
-                {
                     yield return file;
-                }
                 foreach (var file in Directory.GetFiles(roolFolder, "*.glb", SearchOption.AllDirectories))
-                {
                     yield return file;
-                }
             }
         }
 

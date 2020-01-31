@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0015" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Veldrid.PBR\Veldrid.PBR.csproj" />
   </ItemGroup>
 
