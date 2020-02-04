@@ -18,7 +18,7 @@ namespace Veldrid.PBR.Sample
             window.GraphicsDeviceCreated += (g, r, s) =>
             {
                 resourceCache = new ResourceCache(g.ResourceFactory);
-                sceneRenderer = new SimpleScene(g, s, resourceCache, content);
+                sceneRenderer = new SimpleScene(g, s, resourceCache, new PbrContent(content));
             };
             window.GraphicsDeviceDestroyed += () =>
             {

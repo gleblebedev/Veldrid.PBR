@@ -3,6 +3,6 @@
     public struct BufferData
     {
         public BufferDescription Description;
-        public byte[] Data;
+        public int Offset;
     }
 }
