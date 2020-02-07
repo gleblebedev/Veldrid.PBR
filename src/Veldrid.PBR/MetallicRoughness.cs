@@ -1,8 +1,7 @@
 ﻿namespace Veldrid.PBR
 {
-    public struct MetallicRoughness
+    public class MetallicRoughness
     {
-        public CommonMaterialParameters Common;
         public MapParameters BaseColor;
 
         public MapParameters MetallicRoughnessMap;

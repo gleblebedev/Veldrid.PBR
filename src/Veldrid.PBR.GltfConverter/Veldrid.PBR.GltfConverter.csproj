@@ -1,16 +1,43 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>Veldrid.PBR</RootNamespace>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <RootNamespace>Veldrid.PBR</RootNamespace>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0015" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="VertexAttributes.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>VertexAttributes.tt</DependentUpon>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Veldrid.PBR\Veldrid.PBR.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0015" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Veldrid.PBR\Veldrid.PBR.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="VertexAttributes.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>VertexAttributes.cs</LastGenOutput>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="VertexAttributes.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>VertexAttributes.tt</DependentUpon>
+        </Compile>
+    </ItemGroup>
 
 </Project>

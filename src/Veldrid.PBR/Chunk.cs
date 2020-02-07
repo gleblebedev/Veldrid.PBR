@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Veldrid.PBR
 {
-    public struct Lump<T> where T : struct
+    public struct Chunk<T> where T : struct
     {
         public int Offset;
         public int Count;

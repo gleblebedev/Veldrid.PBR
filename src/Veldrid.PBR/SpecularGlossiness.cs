@@ -1,8 +1,7 @@
 ﻿namespace Veldrid.PBR
 {
-    public struct SpecularGlossiness
+    public class SpecularGlossiness
     {
-        public CommonMaterialParameters Common;
         public MapParameters Diffuse;
         public MapParameters SpecularGlossinessMap;
     }

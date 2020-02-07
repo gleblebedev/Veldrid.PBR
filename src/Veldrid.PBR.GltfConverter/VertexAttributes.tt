@@ -1,0 +1,66 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
+using SharpGLTF.Schema2;
+
+namespace Veldrid.PBR
+{
+<#
+    var attributeTypes = new[] {
+        /// <summary>
+        /// One 32-bit floating point value.
+        /// </summary>
+        Tuple.Create("Float1", "Scalar", "float", "float", new []{""}),
+        /// <summary>
+        /// Two 32-bit floating point values.
+        /// </summary>
+        Tuple.Create("Float2", "Vector2", "Vector2", "float", new []{".X",".Y"}),
+        /// <summary>
+        /// Three 32-bit floating point values.
+        /// </summary>
+        Tuple.Create("Float3", "Vector3", "Vector3", "float", new []{".X",".Y",".Z"}),
+        /// <summary>
+        /// Four 32-bit floating point values.
+        /// </summary>
+        Tuple.Create("Float4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"})
+        };
+    foreach (var attr in attributeTypes)
+    {
+        var attributeType = attr.Item1;
+        var arrayType = attr.Item3;
+#>
+    internal class <#=attributeType#>VertexAttribute : AbstractVertexAttribute
+    {
+        private readonly string _key;
+        private IList<<#=arrayType#>> _values;
+
+        public <#=attributeType#>VertexAttribute(string key, Accessor accessor)
+        {
+            _key = key;
+            _values = accessor.As<#=attr.Item2#>Array();
+        }
+
+        public override VertexElementFormat VertexElementFormat { get { return VertexElementFormat.<#=attributeType#>; } }
+
+        public override void Write(BinaryWriter writer, int index)
+        {
+            var val = _values[index];
+<#
+    foreach (var ext in attr.Item5)
+    {
+#>            writer.Write((<#=attr.Item4#>)val<#=ext#>);
+<#
+    }
+#>        }
+    }
+<#
+    }
+#>
+}

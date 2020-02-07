@@ -30,7 +30,7 @@ namespace Veldrid.PBR
             Write(PbrContent.Magic);
             Write(new VersionValue(typeof(GraphicsDevice).Assembly.GetName().Version));
             Write(new VersionValue(PbrContent.CurrentVersion));
-            var lumps = new Lumps();
+            var lumps = new Chunks();
             var lumpPos = Position;
             Write(ref lumps);
 

@@ -12,11 +12,12 @@ namespace Veldrid.PBR
         public const string FragmentShader = @"
 #version 450
 
+layout(location = 0) in vec4 fsin_color;
 layout(location = 0) out vec4 fsout_color;
 
 void main()
 {
-    fsout_color = vec4(1,1,1,1);
+    fsout_color = fsin_color;
 }";
 
         public const string VertexShader = @"
@@ -32,13 +33,19 @@ layout(set = 0, binding = 1) uniform ModelBuffer
     mat4 Model;
 };
 
-layout(location = 0) in vec3 POSITION;
+layout(location = 0) in vec3 NORMAL;
+layout(location = 1) in vec3 POSITION;
+layout(location = 2) in vec4 TANGENT;
+layout(location = 3) in vec2 TEXCOORD_0;
+
+layout(location = 0) out vec4 fsin_color;
 
 void main()
 {
     vec4 worldPosition = Model * vec4(POSITION, 1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
+    fsin_color = vec4(NORMAL,1);
     gl_Position = clipPosition;
 }";
 
@@ -109,7 +116,7 @@ void main()
                 description.RasterizerState = new RasterizerStateDescription
                 {
                     CullMode = FaceCullMode.None,
-                    FillMode = PolygonFillMode.Wireframe,
+                    FillMode = PolygonFillMode.Solid,
                     FrontFace = FrontFace.Clockwise,
                     DepthClipEnabled = true,
                     ScissorTestEnabled = false

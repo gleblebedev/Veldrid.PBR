@@ -1,10 +1,44 @@
-﻿namespace Veldrid.PBR
+﻿using System;
+
+namespace Veldrid.PBR
 {
     /// <summary>
     ///     Describes a single element of a vertex.
     /// </summary>
-    public struct VertexElementData
+    public struct VertexElementData : IEquatable<VertexElementData>
     {
+        public bool Equals(VertexElementData other)
+        {
+            return Name == other.Name && Semantic == other.Semantic && Format == other.Format && Offset == other.Offset;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is VertexElementData other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = Name;
+                hashCode = (hashCode * 397) ^ (int) Semantic;
+                hashCode = (hashCode * 397) ^ (int) Format;
+                hashCode = (hashCode * 397) ^ (int) Offset;
+                return hashCode;
+            }
+        }
+
+        public static bool operator ==(VertexElementData left, VertexElementData right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(VertexElementData left, VertexElementData right)
+        {
+            return !left.Equals(right);
+        }
+
         /// <summary>
         ///     The name of the element.
         /// </summary>

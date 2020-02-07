@@ -42,8 +42,6 @@ namespace Veldrid.PBR
             foreach (var node in _modelRoot.LogicalNodes)
                 if (node.Skin != null && node.Mesh != null)
                     skinPerMesh[node.Mesh.LogicalIndex] = node.Skin;
-            _content.VertexElements.Add(new VertexElementData(_content.AddString("POSITION"),
-                VertexElementFormat.Float3, VertexElementSemantic.TextureCoordinate));
             foreach (var mesh in _modelRoot.LogicalMeshes) ConvertMesh(mesh, skinPerMesh[mesh.LogicalIndex]);
             _content.Buffers.Add(new BufferData(new BufferDescription(0, BufferUsage.VertexBuffer),
                 _content.AddBlob(_vertexBuffer)));
@@ -93,8 +91,6 @@ namespace Veldrid.PBR
                 primitiveData.IndexBuffer = 1;
                 primitiveData.IndexBufferOffset = (uint) _indexBuffer.Position;
                 primitiveData.VertexBufferView = _content.BufferViews.Count;
-                _content.BufferViews.Add(new VertexBufferViewData(0, (uint) _vertexBuffer.Position,
-                    new IndexRange(0, 1)));
                 List<int> indices;
                 switch (primitive.DrawPrimitiveType)
                 {
@@ -131,7 +127,21 @@ namespace Veldrid.PBR
                 }
 
                 var vertexAccessors = primitive.VertexAccessors;
-                var position = vertexAccessors["POSITION"].AsVector3Array();
+                var attributes = new List<AbstractVertexAttribute>(vertexAccessors.Count);
+                var startIndex = _content.VertexElements.Count;
+                foreach (var vertexAccessor in vertexAccessors)
+                {
+                    var key = vertexAccessor.Key;
+                    var accessor = vertexAccessor.Value;
+                    var attribute = AbstractVertexAttribute.Create(key, accessor);
+                    attributes.Add(attribute);
+                    _content.VertexElements.Add(new VertexElementData(_content.AddString(key),
+                        attribute.VertexElementFormat, VertexElementSemantic.TextureCoordinate));
+                }
+
+                _content.BufferViews.Add(new VertexBufferViewData(0, (uint) _vertexBuffer.Position,
+                    new IndexRange(startIndex, attributes.Count)));
+
                 var newIndices = new Dictionary<int, int>();
                 primitiveData.IndexBufferFormat =
                     indices.Count <= ushort.MaxValue ? IndexFormat.UInt16 : IndexFormat.UInt32;
@@ -142,10 +152,7 @@ namespace Veldrid.PBR
                     {
                         v = newIndices.Count;
                         newIndices.Add(index, v);
-                        var vector3 = position[index];
-                        _vertexWriter.Write(vector3.X);
-                        _vertexWriter.Write(vector3.Y);
-                        _vertexWriter.Write(vector3.Z);
+                        foreach (var attribute in attributes) attribute.Write(_vertexWriter, index);
                     }
 
                     if (primitiveData.IndexBufferFormat == IndexFormat.UInt16)
@@ -156,17 +163,12 @@ namespace Veldrid.PBR
 
                 primitiveData.IndexCount = (uint) indices.Count;
 
-                //foreach (var vertexAccessor in vertexAccessors)
-                //{
-                //    var key = vertexAccessor.Key;
-                //    var accessor = vertexAccessor.Value;
-                //    if (k)
-                //}
                 _content.Primitive.Add(primitiveData);
             }
 
             _content.Mesh.Add(meshData);
         }
+
 
         private IEnumerable<int> GetTriangleIndices(MeshPrimitive primitive)
         {
