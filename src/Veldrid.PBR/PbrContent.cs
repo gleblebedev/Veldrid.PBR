@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -8,7 +9,9 @@ namespace Veldrid.PBR
     public class PbrContent
     {
         internal static readonly Version CurrentVersion = new Version(0, 0, 0, 0);
-        internal static readonly byte[] Magic = Encoding.ASCII.GetBytes("VELDRID.PBR.MESH");
+
+        internal static readonly byte[] Magic =
+            Encoding.ASCII.GetBytes("VELDRIDPBR" + (BitConverter.IsLittleEndian ? "LE" : "BE"));
 
         private readonly Memory<byte> _data;
         private Lumps _lumps;
@@ -36,12 +39,14 @@ namespace Veldrid.PBR
 
         public int NumBuffers => _lumps.Buffers.Count;
         public int NumMeshes => _lumps.Meshes.Count;
+        public int NumNodes => _lumps.Nodes.Count;
 
         public DeviceBuffer CreateBuffer(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
             ref var bufferData = ref _lumps.Buffers.GetAt(_data, index);
             var deviceBuffer = resourceFactory.CreateBuffer(ref bufferData.Description);
-            graphicsDevice.UpdateBuffer(deviceBuffer, 0, ref _data.Span.Slice(bufferData.Offset).GetPinnableReference(),
+            graphicsDevice.UpdateBuffer(deviceBuffer, 0,
+                ref _data.Span.Slice(GetBlob(bufferData.BlobIndex)).GetPinnableReference(),
                 bufferData.Description.SizeInBytes);
             return deviceBuffer;
         }
@@ -51,15 +56,55 @@ namespace Veldrid.PBR
             return ref _lumps.Buffers.GetAt(_data, index).Description;
         }
 
+        public ref VertexBufferViewData GetVertexBufferView(int index)
+        {
+            return ref _lumps.BufferViews.GetAt(_data, index);
+        }
 
         public ref MeshData GetMesh(int index)
         {
             return ref _lumps.Meshes.GetAt(_data, index);
         }
 
+        public ref NodeData GetNode(int index)
+        {
+            return ref _lumps.Nodes.GetAt(_data, index);
+        }
+
         public ref PrimitiveData GetPrimitive(int index)
         {
             return ref _lumps.Primitives.GetAt(_data, index);
+        }
+
+
+        public VertexLayoutDescription GetVertexLayoutDescription(IndexRange elements)
+        {
+            var res = new VertexElementDescription[elements.Count];
+            for (var index = 0; index < res.Length; index++)
+            {
+                ref var vertexElementData = ref _lumps.VertexElements.GetAt(_data, elements.StartIndex + index);
+                res[index] = new VertexElementDescription(GetString(vertexElementData.Name), vertexElementData.Semantic,
+                    vertexElementData.Format, vertexElementData.Offset);
+            }
+
+            return new VertexLayoutDescription(res);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private IndexRange GetBlob(int index)
+        {
+            return _lumps.BinaryBlobs.GetAt(_data, index);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe string GetString(int index)
+        {
+            var indexRange = _lumps.Strings.GetAt(_data, index);
+            var span = MemoryMarshal.Cast<byte, char>(_data.Span.Slice(indexRange.StartIndex, indexRange.Count));
+            fixed (char* value = &span.GetPinnableReference())
+            {
+                return new string(value, 0, indexRange.Count / 2);
+            }
         }
 
         private int Read<T>(int pos, out T value) where T : struct

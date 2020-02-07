@@ -2,7 +2,13 @@
 {
     public struct BufferData
     {
+        public BufferData(BufferDescription description, int index)
+        {
+            Description = description;
+            BlobIndex = index;
+        }
+
         public BufferDescription Description;
-        public int Offset;
+        public int BlobIndex;
     }
 }

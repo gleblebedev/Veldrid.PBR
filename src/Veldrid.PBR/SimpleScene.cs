@@ -27,16 +27,24 @@ layout(set = 0, binding = 0) uniform ViewProjection
     mat4 View;
     mat4 Projection;
 };
+layout(set = 0, binding = 1) uniform ModelBuffer
+{
+    mat4 Model;
+};
 
 layout(location = 0) in vec3 POSITION;
 
 void main()
 {
-    vec4 worldPosition = vec4(POSITION, 1);
+    vec4 worldPosition = Model * vec4(POSITION, 1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
     gl_Position = clipPosition;
 }";
+
+        public static readonly ResourceLayoutDescription ProjViewModelLayoutDescription = new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("ViewProjection", ResourceKind.UniformBuffer, ShaderStages.Vertex),
+            new ResourceLayoutElementDescription("Model", ResourceKind.UniformBuffer, ShaderStages.Vertex));
 
         private readonly GraphicsDevice _graphicsDevice;
         private readonly Swapchain _swapchain;
@@ -46,9 +54,10 @@ void main()
         private readonly List<IDisposable> _disposables;
         private readonly List<DeviceBuffer> _buffers;
         private readonly List<Pipeline> _pipelines;
-        private readonly ResourceSet _mainProjViewRS;
-        private readonly ResourceLayout _mainProjViewLayout;
+        private readonly ResourceSet _projViewModelResourceSet;
+        private readonly ResourceLayout _projViewModelLayout;
         private readonly DeviceBuffer _projViewBuffer;
+        private readonly DeviceBuffer _modelBuffer;
         private float _angle;
 
         public SimpleScene(GraphicsDevice graphicsDevice, Swapchain swapchain, ResourceCache resourceCache,
@@ -63,13 +72,15 @@ void main()
             _cl = ResourceFactory.CreateCommandList();
             _disposables.Add(_cl);
 
-            _projViewBuffer =
-                ResourceFactory.CreateBuffer(new BufferDescription(2 * 64,
-                    BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            _projViewBuffer = ResourceFactory.CreateBuffer(new BufferDescription(2 * 64,
+                BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            _modelBuffer = ResourceFactory.CreateBuffer(new BufferDescription(64,
+                BufferUsage.UniformBuffer | BufferUsage.Dynamic));
 
-            _mainProjViewLayout = _resourceCache.GetResourceLayout(ResourceCache.ProjViewLayoutDescription);
-            _mainProjViewRS =
-                _resourceCache.GetResourceSet(new ResourceSetDescription(_mainProjViewLayout, _projViewBuffer));
+            _projViewModelLayout = _resourceCache.GetResourceLayout(ProjViewModelLayoutDescription);
+            _projViewModelResourceSet =
+                _resourceCache.GetResourceSet(new ResourceSetDescription(_projViewModelLayout, _projViewBuffer,
+                    _modelBuffer));
 
             _buffers = new List<DeviceBuffer>(_content.NumBuffers);
 
@@ -82,8 +93,7 @@ void main()
 
             var vertexLayouts = new[]
             {
-                new VertexLayoutDescription(new VertexElementDescription("POSITION", VertexElementFormat.Float3,
-                    VertexElementSemantic.TextureCoordinate))
+                _content.GetVertexLayoutDescription(_content.GetVertexBufferView(0).Elements)
             };
             var shaders = ResourceFactory.CreateFromSpirv(
                 new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(VertexShader), "main"),
@@ -105,7 +115,7 @@ void main()
                     ScissorTestEnabled = false
                 };
                 description.ShaderSet = new ShaderSetDescription(vertexLayouts, shaders);
-                description.ResourceLayouts = new[] {_mainProjViewLayout};
+                description.ResourceLayouts = new[] {_projViewModelLayout};
                 description.Outputs = swapchain.Framebuffer.OutputDescription;
                 var pipeline = _resourceCache.GetPipeline(ref description);
                 _pipelines.Add(pipeline);
@@ -131,18 +141,25 @@ void main()
                     Vector3.Zero, Vector3.UnitY);
             _cl.UpdateBuffer(_projViewBuffer, 0, ref viewProj);
 
-            for (var index = 0; index < _content.NumMeshes; index++)
+
+            for (var index = 0; index < _content.NumNodes; index++)
             {
-                ref var mesh = ref _content.GetMesh(index);
+                ref var node = ref _content.GetNode(index);
+                if (node.MeshIndex < 0) continue;
+
+
+                _cl.UpdateBuffer(_modelBuffer, 0, ref node.WorldTransform);
+
+                ref var mesh = ref _content.GetMesh(node.MeshIndex);
                 foreach (var primitiveIndex in mesh.Primitives)
                 {
                     ref var primitive = ref _content.GetPrimitive(primitiveIndex);
-
-                    _cl.SetVertexBuffer(0, _buffers[primitive.VertexBuffer], primitive.VertexBufferOffset);
+                    var vbView = _content.GetVertexBufferView(primitive.VertexBufferView);
+                    _cl.SetVertexBuffer(0, _buffers[vbView.Buffer], vbView.Offset);
                     _cl.SetIndexBuffer(_buffers[primitive.IndexBuffer], primitive.IndexBufferFormat,
                         primitive.IndexBufferOffset);
                     _cl.SetPipeline(_pipelines[0]);
-                    _cl.SetGraphicsResourceSet(0, _mainProjViewRS);
+                    _cl.SetGraphicsResourceSet(0, _projViewModelResourceSet);
                     _cl.DrawIndexed(primitive.IndexCount, 1, 0, 0, 0);
                 }
             }

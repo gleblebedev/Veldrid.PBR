@@ -15,7 +15,6 @@ namespace Veldrid.PBR
         public IndexFormat IndexBufferFormat;
         public uint IndexBufferOffset;
         public uint IndexCount;
-        public int VertexBuffer;
-        public uint VertexBufferOffset;
+        public int VertexBufferView;
     }
 }
