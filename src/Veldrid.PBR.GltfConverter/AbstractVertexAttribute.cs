@@ -19,7 +19,7 @@ namespace Veldrid.PBR
                 case DimensionType.VEC4:
                     return CreateVec4VertexAttribute(key, accessor);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException(accessor.Encoding.ToString());
             }
         }
 
@@ -29,8 +29,10 @@ namespace Veldrid.PBR
             {
                 case EncodingType.FLOAT:
                     return new Float2VertexAttribute(key, accessor);
+                case EncodingType.UNSIGNED_SHORT:
+                    return new UShort2VertexAttribute(key, accessor);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    return new Float2VertexAttribute(key, accessor);
             }
         }
 
@@ -41,7 +43,7 @@ namespace Veldrid.PBR
                 case EncodingType.FLOAT:
                     return new Float3VertexAttribute(key, accessor);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    return new Float3VertexAttribute(key, accessor);
             }
         }
 
@@ -52,7 +54,7 @@ namespace Veldrid.PBR
                 case EncodingType.FLOAT:
                     return new Float4VertexAttribute(key, accessor);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    return new Float4VertexAttribute(key, accessor);
             }
         }
 

@@ -29,7 +29,11 @@ namespace Veldrid.PBR
         /// <summary>
         /// Four 32-bit floating point values.
         /// </summary>
-        Tuple.Create("Float4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"})
+        Tuple.Create("Float4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Two 16-bit unsigned integers.
+        /// </summary>
+        Tuple.Create("UShort2", "Vector2", "Vector2", "ushort", new []{".X",".Y"}),
         };
     foreach (var attr in attributeTypes)
     {
