@@ -4,9 +4,4 @@
     {
         IMaterialBinding<TPass> BindMaterial(TMaterial material);
     }
-
-    public interface IMaterialBinding<TPass>
-    {
-        IPassBinding this[TPass pass] { get; }
-    }
 }
