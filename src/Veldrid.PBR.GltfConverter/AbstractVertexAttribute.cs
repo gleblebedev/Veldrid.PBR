@@ -8,6 +8,54 @@ namespace Veldrid.PBR
     {
         public abstract VertexElementFormat VertexElementFormat { get; }
 
+        public string Key { get; }
+
+        public int Priority { get; }
+
+        public AbstractVertexAttribute(string key)
+        {
+            Key = key;
+            var subKey = key;
+            Priority = 0;
+            if (subKey.StartsWith(GltfConverter.TargetPrefix))
+            {
+                subKey = subKey.Substring(GltfConverter.TargetPrefix.Length);
+                Priority += 1;
+            }
+
+            if (subKey.StartsWith("POSITION"))
+            {
+            }
+            else if (subKey.StartsWith("NORMAL"))
+            {
+                Priority += 2;
+            }
+            else if (subKey.StartsWith("TANGENT"))
+            {
+                Priority += 4;
+            }
+            else if (subKey.StartsWith("TEXCOORD"))
+            {
+                Priority += 6;
+            }
+            else if (subKey.StartsWith("COLOR"))
+            {
+                Priority += 8;
+            }
+            else if (subKey.StartsWith("JOINTS"))
+            {
+                Priority += 10;
+            }
+            else if (subKey.StartsWith("WEIGHTS"))
+            {
+                Priority += 12;
+            }
+            else
+            {
+                Priority += 14;
+            }
+        }
+
         public static AbstractVertexAttribute Create(string key, Accessor accessor)
         {
             switch (accessor.Dimensions)
@@ -51,6 +99,11 @@ namespace Veldrid.PBR
         {
             switch (accessor.Encoding)
             {
+                case EncodingType.BYTE:
+                    if (accessor.Normalized)
+                        return new Byte4_NormVertexAttribute(key, accessor);
+                    else
+                        return new Byte4VertexAttribute(key, accessor);
                 case EncodingType.FLOAT:
                     return new Float4VertexAttribute(key, accessor);
                 default:

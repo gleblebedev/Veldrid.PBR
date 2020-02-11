@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using SharpGLTF.Schema2;
 using SharpGLTF.Validation;
 
@@ -9,12 +10,14 @@ namespace Veldrid.PBR
 {
     public class GltfConverter
     {
+        public const string TargetPrefix = "TARGET_";
         public MemoryStream _indexBuffer;
         public BinaryWriter _indexWriter;
         public MemoryStream _vertexBuffer;
         private readonly ModelRoot _modelRoot;
         private readonly BinaryWriter _vertexWriter;
         private readonly ContentToWrite _content;
+        private Dictionary<ComparableList<VertexElementData>, IndexRange> _elements = new Dictionary<ComparableList<VertexElementData>, IndexRange>();
 
         internal GltfConverter(ModelRoot modelRoot)
         {
@@ -126,21 +129,7 @@ namespace Veldrid.PBR
                         throw new ArgumentOutOfRangeException();
                 }
 
-                var vertexAccessors = primitive.VertexAccessors;
-                var attributes = new List<AbstractVertexAttribute>(vertexAccessors.Count);
-                var startIndex = _content.VertexElements.Count;
-                foreach (var vertexAccessor in vertexAccessors)
-                {
-                    var key = vertexAccessor.Key;
-                    var accessor = vertexAccessor.Value;
-                    var attribute = AbstractVertexAttribute.Create(key, accessor);
-                    attributes.Add(attribute);
-                    _content.VertexElements.Add(new VertexElementData(_content.AddString(key),
-                        attribute.VertexElementFormat, VertexElementSemantic.TextureCoordinate));
-                }
-
-                _content.BufferViews.Add(new VertexBufferViewData(0, (uint) _vertexBuffer.Position,
-                    new IndexRange(startIndex, attributes.Count)));
+                var attributes = GetVertexAttributes(primitive);
 
                 var newIndices = new Dictionary<int, int>();
                 primitiveData.IndexBufferFormat =
@@ -169,6 +158,106 @@ namespace Veldrid.PBR
             _content.Mesh.Add(meshData);
         }
 
+        private List<AbstractVertexAttribute> GetVertexAttributes(MeshPrimitive primitive)
+        {
+            var vertexAccessors = primitive.VertexAccessors;
+            var attributes = new List<AbstractVertexAttribute>(vertexAccessors.Count);
+            AbstractVertexAttribute positions = null;
+            AbstractVertexAttribute normals = null;
+            foreach (var vertexAccessor in vertexAccessors)
+            {
+                var key = vertexAccessor.Key;
+                var accessor = vertexAccessor.Value;
+                var attribute = AbstractVertexAttribute.Create(key, accessor);
+                attributes.Add(attribute);
+                switch (key)
+                {
+                    case "POSITION":
+                        positions = attribute;
+                        break;
+                    case "NORMAL":
+                        normals = attribute;
+                        break;
+                }
+            }
+
+            if (normals == null)
+            {
+                normals = GenerateNormals((Float3VertexAttribute)positions, primitive);
+                attributes.Add(normals);
+            }
+            //else
+            //{
+            //    var normals1 = GenerateNormals((Float3VertexAttribute)positions, primitive);
+            //    var normalsVec3 = ((Float3VertexAttribute)normals);
+            //    for (var index = 0; index < normals1.Values.Length; index++)
+            //    {
+            //        var p = Vector3.Dot(normals1.Values[index], normalsVec3.Values[index]);
+            //        if (p < 0.0f)
+            //            throw new Exception("InvalidNormalDirection");
+            //    }
+            //}
+
+            for (int morphTargetIndex = 0; morphTargetIndex < primitive.MorphTargetsCount; ++morphTargetIndex)
+            {
+                foreach (var morphTargetAccessor in primitive.GetMorphTargetAccessors(morphTargetIndex))
+                {
+                    var key = TargetPrefix+morphTargetAccessor.Key+"_"+morphTargetIndex;
+                    var accessor = morphTargetAccessor.Value;
+                    var attribute = AbstractVertexAttribute.Create(key, accessor);
+                    attributes.Add(attribute);
+                }
+            }
+            attributes.Sort(new VertexAttributeComparer());
+            var elements = new ComparableList<VertexElementData>(attributes.Select(_=> new VertexElementData(_content.AddString(_.Key), _.VertexElementFormat, VertexElementSemantic.TextureCoordinate)));
+
+
+            if (!_elements.TryGetValue(elements, out var range))
+            {
+                range = new IndexRange(_content.VertexElements.Count, elements.Count);
+                foreach (var element in elements)
+                {
+                    _content.VertexElements.Add(element);
+                }
+            }
+
+
+            var vertexBufferViewData = new VertexBufferViewData(0, (uint) _vertexBuffer.Position, range);
+
+            _content.BufferViews.Add(vertexBufferViewData);
+
+            return attributes;
+        }
+
+        private Vector3ArrayVertexAttribute GenerateNormals(Float3VertexAttribute positions, MeshPrimitive primitive)
+        {
+            var normals = new Vector3[positions.Values.Count];
+            if (primitive.DrawPrimitiveType == PrimitiveType.TRIANGLES
+                || primitive.DrawPrimitiveType == PrimitiveType.TRIANGLE_FAN
+                || primitive.DrawPrimitiveType == PrimitiveType.TRIANGLE_STRIP)
+            {
+                foreach ((int A, int B, int C) in primitive.GetTriangleIndices())
+                {
+                    var ab = positions.Values[B] - positions.Values[A];
+                    var ac = positions.Values[C] - positions.Values[A];
+                    var n = Vector3.Cross(ab, ac);
+                    normals[A] += n;
+                    normals[B] += n;
+                    normals[C] += n;
+                }
+            }
+
+            for (var index = 0; index < normals.Length; index++)
+            {
+                var normal = normals[index];
+                if (normal != Vector3.Zero)
+                    normals[index] = Vector3.Normalize(normal);
+                else
+                    normals[index] = Vector3.UnitY;
+            }
+
+            return new Vector3ArrayVertexAttribute("NORMAL", normals);
+        }
 
         private IEnumerable<int> GetTriangleIndices(MeshPrimitive primitive)
         {

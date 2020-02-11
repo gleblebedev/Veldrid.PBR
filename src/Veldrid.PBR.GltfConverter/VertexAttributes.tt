@@ -34,6 +34,22 @@ namespace Veldrid.PBR
         /// Two 16-bit unsigned integers.
         /// </summary>
         Tuple.Create("UShort2", "Vector2", "Vector2", "ushort", new []{".X",".Y"}),
+        /// <summary>
+        /// Four 8-bit unsigned normalized integers.
+        /// </summary>
+        Tuple.Create("Byte4_Norm", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 8-bit unsigned integers.
+        /// </summary>
+        Tuple.Create("Byte4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 8-bit signed normalized integers.
+        /// </summary>
+        Tuple.Create("SByte4_Norm", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 8-bit signed integers.
+        /// </summary>
+        Tuple.Create("SByte4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
         };
     foreach (var attr in attributeTypes)
     {
@@ -42,14 +58,14 @@ namespace Veldrid.PBR
 #>
     internal class <#=attributeType#>VertexAttribute : AbstractVertexAttribute
     {
-        private readonly string _key;
         private IList<<#=arrayType#>> _values;
 
-        public <#=attributeType#>VertexAttribute(string key, Accessor accessor)
+        public <#=attributeType#>VertexAttribute(string key, Accessor accessor): base(key)
         {
-            _key = key;
             _values = accessor.As<#=attr.Item2#>Array();
         }
+
+        public IList<<#=arrayType#>> Values => _values;
 
         public override VertexElementFormat VertexElementFormat { get { return VertexElementFormat.<#=attributeType#>; } }
 

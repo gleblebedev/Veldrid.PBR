@@ -1,0 +1,38 @@
+﻿<#@ template language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+#version 450
+
+layout(set = 0, binding = 0) uniform ViewProjection
+{
+    mat4 View;
+    mat4 Projection;
+};
+layout(set = 0, binding = 1) uniform ModelBuffer
+{
+    mat4 Model;
+};
+
+
+<#
+    for (int locationIndex = 0; locationIndex<_key.Elements.Elements.Length; ++locationIndex)
+    {
+        var element = _key.Elements.Elements[locationIndex];
+#>
+layout(location = <#=locationIndex#>) in <#=SpirVTypeFromFormat(element.Format)#> <#=element.Name#>;
+<#
+    }
+#>
+
+layout(location = 0) out vec4 fsin_color;
+
+void main()
+{
+    vec4 worldPosition = Model * vec4(POSITION, 1);
+    vec4 viewPosition = View * worldPosition;
+    vec4 clipPosition = Projection * viewPosition;
+    fsin_color = vec4(NORMAL,1);
+    gl_Position = clipPosition;
+}

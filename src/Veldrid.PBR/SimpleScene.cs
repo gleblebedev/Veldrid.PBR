@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using Veldrid.PBR.Unlit;
 using Veldrid.SPIRV;
 
 namespace Veldrid.PBR
@@ -9,46 +10,6 @@ namespace Veldrid.PBR
     // Non-thread-safe cache for resources.
     public class SimpleScene : IDisposable
     {
-        public const string FragmentShader = @"
-#version 450
-
-layout(location = 0) in vec4 fsin_color;
-layout(location = 0) out vec4 fsout_color;
-
-void main()
-{
-    fsout_color = fsin_color;
-}";
-
-        public const string VertexShader = @"
-#version 450
-
-layout(set = 0, binding = 0) uniform ViewProjection
-{
-    mat4 View;
-    mat4 Projection;
-};
-layout(set = 0, binding = 1) uniform ModelBuffer
-{
-    mat4 Model;
-};
-
-layout(location = 0) in vec3 NORMAL;
-layout(location = 1) in vec3 POSITION;
-layout(location = 2) in vec4 TANGENT;
-layout(location = 3) in vec2 TEXCOORD_0;
-
-layout(location = 0) out vec4 fsin_color;
-
-void main()
-{
-    vec4 worldPosition = Model * vec4(POSITION, 1);
-    vec4 viewPosition = View * worldPosition;
-    vec4 clipPosition = Projection * viewPosition;
-    fsin_color = vec4(NORMAL,1);
-    gl_Position = clipPosition;
-}";
-
         public static readonly ResourceLayoutDescription ProjViewModelLayoutDescription = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("ViewProjection", ResourceKind.UniformBuffer, ShaderStages.Vertex),
             new ResourceLayoutElementDescription("Model", ResourceKind.UniformBuffer, ShaderStages.Vertex));
@@ -66,6 +27,7 @@ void main()
         private readonly DeviceBuffer _projViewBuffer;
         private readonly DeviceBuffer _modelBuffer;
         private float _angle;
+        private UnlitShaderFactory _unlitShaderFactory;
 
         public SimpleScene(GraphicsDevice graphicsDevice, Swapchain swapchain, ResourceCache resourceCache,
             PbrContent content)
@@ -77,6 +39,8 @@ void main()
             ResourceFactory = graphicsDevice.ResourceFactory;
             _disposables = new List<IDisposable>();
             _cl = ResourceFactory.CreateCommandList();
+            _unlitShaderFactory = new UnlitShaderFactory(graphicsDevice.ResourceFactory);
+            _disposables.Add(_unlitShaderFactory);
             _disposables.Add(_cl);
 
             _projViewBuffer = ResourceFactory.CreateBuffer(new BufferDescription(2 * 64,
@@ -102,9 +66,8 @@ void main()
             {
                 _content.GetVertexLayoutDescription(_content.GetVertexBufferView(0).Elements)
             };
-            var shaders = ResourceFactory.CreateFromSpirv(
-                new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(VertexShader), "main"),
-                new ShaderDescription(ShaderStages.Fragment, Encoding.ASCII.GetBytes(FragmentShader), "main"));
+
+            var shaders = _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(){Elements = vertexLayouts [0]});
 
             _pipelines = new List<Pipeline>(1);
             //foreach (var pipelineData in _content.Pipelines)
@@ -138,7 +101,7 @@ void main()
             _cl.SetFramebuffer(_swapchain.Framebuffer);
             _cl.SetFullViewport(0);
             _cl.ClearDepthStencil(1.0f);
-            _cl.ClearColorTarget(0, RgbaFloat.Blue);
+            _cl.ClearColorTarget(0, new RgbaFloat(0, 0.1f, 0.5f, 1));
 
             var viewProj = new ViewProjection();
             viewProj.Projection = Matrix4x4.CreatePerspectiveFieldOfView(3.14f * 0.5f, 1, 0.1f, 100.0f);
