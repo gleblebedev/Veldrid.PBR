@@ -17,40 +17,88 @@ namespace Veldrid.PBR
         /// <summary>
         /// One 32-bit floating point value.
         /// </summary>
-        Tuple.Create("Float1", "Scalar", "float", "float", new []{""}),
+        Tuple.Create("Float1", "Scalar", "float", "", new []{""}),
         /// <summary>
         /// Two 32-bit floating point values.
         /// </summary>
-        Tuple.Create("Float2", "Vector2", "Vector2", "float", new []{".X",".Y"}),
+        Tuple.Create("Float2", "Vector2", "Vector2", "", new []{".X",".Y"}),
         /// <summary>
         /// Three 32-bit floating point values.
         /// </summary>
-        Tuple.Create("Float3", "Vector3", "Vector3", "float", new []{".X",".Y",".Z"}),
+        Tuple.Create("Float3", "Vector3", "Vector3", "", new []{".X",".Y",".Z"}),
         /// <summary>
         /// Four 32-bit floating point values.
         /// </summary>
-        Tuple.Create("Float4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        Tuple.Create("Float4", "Vector4", "Vector4", "", new []{".X",".Y",".Z",".W"}),
+
+        /// <summary>
+        /// Two 8-bit unsigned normalized integers.
+        /// </summary>
+        Tuple.Create("Byte2_Norm", "Vector2", "Vector2", "FloatToNormByte", new []{".X",".Y"}),
+        /// <summary>
+        /// Two 8-bit unsigned integers.
+        /// </summary>
+        Tuple.Create("Byte2", "Vector2", "Vector2", "FloatToByte", new []{".X",".Y"}),
+        /// <summary>
+        /// Two 8-bit signed normalized integers.
+        /// </summary>
+        Tuple.Create("SByte2_Norm", "Vector2", "Vector2", "FloatToNormSByte", new []{".X",".Y"}),
+        /// <summary>
+        /// Two 8-bit signed integers.
+        /// </summary>
+        Tuple.Create("SByte2", "Vector2", "Vector2", "FloatToSByte", new []{".X",".Y"}),
+        /// <summary>
+        /// Two 16-bit unsigned normalized integers.
+        /// </summary>
+        Tuple.Create("Short2_Norm", "Vector2", "Vector2", "FloatToNormShort", new []{".X",".Y"}),
         /// <summary>
         /// Two 16-bit unsigned integers.
         /// </summary>
-        Tuple.Create("UShort2", "Vector2", "Vector2", "ushort", new []{".X",".Y"}),
+        Tuple.Create("Short2", "Vector2", "Vector2", "FloatToShort", new []{".X",".Y"}),
+        /// <summary>
+        /// Two 16-bit signed normalized integers.
+        /// </summary>
+        Tuple.Create("UShort2_Norm", "Vector2", "Vector2", "FloatToNormUShort", new []{".X",".Y"}),
+        /// <summary>
+        /// Two 16-bit signed integers.
+        /// </summary>
+        Tuple.Create("UShort2", "Vector2", "Vector2", "FloatToUShort", new []{".X",".Y"}),
+        
         /// <summary>
         /// Four 8-bit unsigned normalized integers.
         /// </summary>
-        Tuple.Create("Byte4_Norm", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        Tuple.Create("Byte4_Norm", "Vector4", "Vector4", "FloatToNormByte", new []{".X",".Y",".Z",".W"}),
         /// <summary>
         /// Four 8-bit unsigned integers.
         /// </summary>
-        Tuple.Create("Byte4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        Tuple.Create("Byte4", "Vector4", "Vector4", "FloatToByte", new []{".X",".Y",".Z",".W"}),
         /// <summary>
         /// Four 8-bit signed normalized integers.
         /// </summary>
-        Tuple.Create("SByte4_Norm", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        Tuple.Create("SByte4_Norm", "Vector4", "Vector4", "FloatToNormSByte", new []{".X",".Y",".Z",".W"}),
         /// <summary>
         /// Four 8-bit signed integers.
         /// </summary>
-        Tuple.Create("SByte4", "Vector4", "Vector4", "float", new []{".X",".Y",".Z",".W"}),
+        Tuple.Create("SByte4", "Vector4", "Vector4", "FloatToSByte", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 16-bit unsigned normalized integers.
+        /// </summary>
+        Tuple.Create("Short4_Norm", "Vector4", "Vector4", "FloatToNormShort", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 16-bit unsigned integers.
+        /// </summary>
+        Tuple.Create("Short4", "Vector4", "Vector4", "FloatToShort", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 16-bit signed normalized integers.
+        /// </summary>
+        Tuple.Create("UShort4_Norm", "Vector4", "Vector4", "FloatToNormUShort", new []{".X",".Y",".Z",".W"}),
+        /// <summary>
+        /// Four 16-bit signed integers.
+        /// </summary>
+        Tuple.Create("UShort4", "Vector4", "Vector4", "FloatToUShort", new []{".X",".Y",".Z",".W"}),
         };
+
+        //Prefix, AccessorArrayType, ArrayItemType, ComponentType, Components
     foreach (var attr in attributeTypes)
     {
         var attributeType = attr.Item1;
@@ -67,6 +115,8 @@ namespace Veldrid.PBR
 
         public IList<<#=arrayType#>> Values => _values;
 
+        public override int Count => _values.Count;
+
         public override VertexElementFormat VertexElementFormat { get { return VertexElementFormat.<#=attributeType#>; } }
 
         public override void Write(BinaryWriter writer, int index)
@@ -75,7 +125,7 @@ namespace Veldrid.PBR
 <#
     foreach (var ext in attr.Item5)
     {
-#>            writer.Write((<#=attr.Item4#>)val<#=ext#>);
+#>            writer.Write(<#=attr.Item4#>(val<#=ext#>));
 <#
     }
 #>        }

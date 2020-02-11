@@ -7,37 +7,34 @@ using System.Text;
 namespace Veldrid.PBR.Numerics
 {
     /// <summary>
-    /// A structure encapsulating four byte values.
+    ///     A structure encapsulating four byte values.
     /// </summary>
     public struct ByteVector4
     {
         /// <summary>
-        /// The X component of the vector.
+        ///     The X component of the vector.
         /// </summary>
         public byte X;
+
         /// <summary>
-        /// The Y component of the vector.
+        ///     The Y component of the vector.
         /// </summary>
         public byte Y;
+
         /// <summary>
-        /// The Z component of the vector.
+        ///     The Z component of the vector.
         /// </summary>
         public byte Z;
+
         /// <summary>
-        /// The W component of the vector.
+        ///     The W component of the vector.
         /// </summary>
         public byte W;
 
         /// <summary>
-        /// Returns the vector (0,0,0,0).
+        ///     Returns the vector (0,0,0,0).
         /// </summary>
-        public static ByteVector4 Zero
-        {
-            get
-            {
-                return new ByteVector4();
-            }
-        }
+        public static ByteVector4 Zero => new ByteVector4();
 
         public ByteVector4(byte x, byte y, byte z, byte w)
         {
@@ -72,7 +69,7 @@ namespace Veldrid.PBR.Numerics
         }
 
         /// <summary>
-        /// Returns a String representing this Vector4 instance.
+        ///     Returns a String representing this Vector4 instance.
         /// </summary>
         /// <returns>The string representation.</returns>
         public override string ToString()
@@ -81,7 +78,7 @@ namespace Veldrid.PBR.Numerics
         }
 
         /// <summary>
-        /// Returns a String representing this Vector4 instance, using the specified format to format individual elements.
+        ///     Returns a String representing this Vector4 instance, using the specified format to format individual elements.
         /// </summary>
         /// <param name="format">The format of individual elements.</param>
         /// <returns>The string representation.</returns>
@@ -91,27 +88,27 @@ namespace Veldrid.PBR.Numerics
         }
 
         /// <summary>
-        /// Returns a String representing this Vector4 instance, using the specified format to format individual elements 
-        /// and the given IFormatProvider.
+        ///     Returns a String representing this Vector4 instance, using the specified format to format individual elements
+        ///     and the given IFormatProvider.
         /// </summary>
         /// <param name="format">The format of individual elements.</param>
         /// <param name="formatProvider">The format provider to use when formatting elements.</param>
         /// <returns>The string representation.</returns>
         public string ToString(string format, IFormatProvider formatProvider)
         {
-            StringBuilder sb = new StringBuilder();
-            string separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
+            var sb = new StringBuilder();
+            var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
             sb.Append('<');
-            sb.Append(this.X.ToString(format, formatProvider));
+            sb.Append(X.ToString(format, formatProvider));
             sb.Append(separator);
             sb.Append(' ');
-            sb.Append(this.Y.ToString(format, formatProvider));
+            sb.Append(Y.ToString(format, formatProvider));
             sb.Append(separator);
             sb.Append(' ');
-            sb.Append(this.Z.ToString(format, formatProvider));
+            sb.Append(Z.ToString(format, formatProvider));
             sb.Append(separator);
             sb.Append(' ');
-            sb.Append(this.W.ToString(format, formatProvider));
+            sb.Append(W.ToString(format, formatProvider));
             sb.Append('>');
             return sb.ToString();
         }

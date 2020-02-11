@@ -5,6 +5,8 @@ using System.Linq;
 using System.Numerics;
 using SharpGLTF.Schema2;
 using SharpGLTF.Validation;
+using Veldrid.PBR.BinaryData;
+using Veldrid.PBR.Numerics;
 
 namespace Veldrid.PBR
 {
@@ -46,10 +48,8 @@ namespace Veldrid.PBR
                 if (node.Skin != null && node.Mesh != null)
                     skinPerMesh[node.Mesh.LogicalIndex] = node.Skin;
             foreach (var mesh in _modelRoot.LogicalMeshes) ConvertMesh(mesh, skinPerMesh[mesh.LogicalIndex]);
-            _content.Buffers.Add(new BufferData(new BufferDescription(0, BufferUsage.VertexBuffer),
-                _content.AddBlob(_vertexBuffer)));
-            _content.Buffers.Add(new BufferData(new BufferDescription(0, BufferUsage.IndexBuffer),
-                _content.AddBlob(_indexBuffer)));
+            _content.Buffers.Add(new BufferData(_content.AddBlob(_vertexBuffer), BufferUsage.VertexBuffer));
+            _content.Buffers.Add(new BufferData(_content.AddBlob(_indexBuffer), BufferUsage.IndexBuffer));
             foreach (var texture in _modelRoot.LogicalTextures)
             {
                 var textureData = new TextureData(_content.AddBlob(texture.PrimaryImage.GetImageContent()))
@@ -164,6 +164,7 @@ namespace Veldrid.PBR
             var attributes = new List<AbstractVertexAttribute>(vertexAccessors.Count);
             AbstractVertexAttribute positions = null;
             AbstractVertexAttribute normals = null;
+            AbstractVertexAttribute colors = null;
             foreach (var vertexAccessor in vertexAccessors)
             {
                 var key = vertexAccessor.Key;
@@ -178,6 +179,9 @@ namespace Veldrid.PBR
                     case "NORMAL":
                         normals = attribute;
                         break;
+                    case "COLOR_0":
+                        colors = attribute;
+                        break;
                 }
             }
 
@@ -186,17 +190,12 @@ namespace Veldrid.PBR
                 normals = GenerateNormals((Float3VertexAttribute)positions, primitive);
                 attributes.Add(normals);
             }
-            //else
+            //if (colors == null)
             //{
-            //    var normals1 = GenerateNormals((Float3VertexAttribute)positions, primitive);
-            //    var normalsVec3 = ((Float3VertexAttribute)normals);
-            //    for (var index = 0; index < normals1.Values.Length; index++)
-            //    {
-            //        var p = Vector3.Dot(normals1.Values[index], normalsVec3.Values[index]);
-            //        if (p < 0.0f)
-            //            throw new Exception("InvalidNormalDirection");
-            //    }
+            //    colors = GenerateColors();
+            //    attributes.Add(colors);
             //}
+
 
             for (int morphTargetIndex = 0; morphTargetIndex < primitive.MorphTargetsCount; ++morphTargetIndex)
             {
@@ -227,6 +226,11 @@ namespace Veldrid.PBR
             _content.BufferViews.Add(vertexBufferViewData);
 
             return attributes;
+        }
+
+        private ByteVector4VertexAttribute GenerateColors()
+        {
+            return new ByteVector4VertexAttribute("COLOR_0", new ByteVector4(255, 255, 255, 255), true);
         }
 
         private Vector3ArrayVertexAttribute GenerateNormals(Float3VertexAttribute positions, MeshPrimitive primitive)

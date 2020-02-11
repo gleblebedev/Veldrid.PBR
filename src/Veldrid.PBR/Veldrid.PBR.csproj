@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="DataStructures.vert.glsl">
+      <Generator>SPIRVReflection</Generator>
+      <LastGenOutput>DataStructures.vert.cs</LastGenOutput>
+    </None>
     <None Update="Unlit\UnlitPixelShader.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
       <LastGenOutput>UnlitPixelShader.cs</LastGenOutput>
@@ -32,6 +36,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="DataStructures.vert.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DataStructures.vert.glsl</DependentUpon>
+    </Compile>
     <Compile Update="Unlit\UnlitPixelShader.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

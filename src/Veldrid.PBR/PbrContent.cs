@@ -3,12 +3,13 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Veldrid.PBR.BinaryData;
 
 namespace Veldrid.PBR
 {
     public class PbrContent
     {
-        internal static readonly Version CurrentVersion = new Version(0, 0, 0, 0);
+        internal static readonly VersionValue CurrentVersion = new VersionValue(new Version(0, 0, 0, 0));
 
         internal static readonly byte[] Magic =
             Encoding.ASCII.GetBytes("VELDRIDPBR" + (BitConverter.IsLittleEndian ? "LE" : "BE"));
@@ -25,14 +26,9 @@ namespace Veldrid.PBR
                 if (dataSpan[pos] != Magic[pos])
                     throw new InvalidDataException("Magic doesn't match");
 
-            VersionValue veldridVersion;
-            pos = Read(pos, out veldridVersion);
-            if (veldridVersion.ToVertsion() != typeof(GraphicsDevice).Assembly.GetName().Version)
-                throw new InvalidDataException("Veldrid version doesn't match file");
-
             VersionValue fileVersion;
             pos = Read(pos, out fileVersion);
-            if (fileVersion.ToVertsion() != CurrentVersion)
+            if (fileVersion != CurrentVersion)
                 throw new InvalidDataException("File format version doesn't match current version");
             pos = Read(pos, out _chunks);
         }
@@ -44,16 +40,44 @@ namespace Veldrid.PBR
         public DeviceBuffer CreateBuffer(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
             ref var bufferData = ref _chunks.Buffers.GetAt(_data, index);
-            var deviceBuffer = resourceFactory.CreateBuffer(ref bufferData.Description);
+            GetBufferDescription(index, out var bufferDescription);
+            var deviceBuffer = resourceFactory.CreateBuffer(ref bufferDescription);
             graphicsDevice.UpdateBuffer(deviceBuffer, 0,
                 ref _data.Span.Slice(GetBlob(bufferData.BlobIndex)).GetPinnableReference(),
-                bufferData.Description.SizeInBytes);
+                bufferDescription.SizeInBytes);
             return deviceBuffer;
         }
 
-        public ref BufferDescription GetBufferDescription(int index)
+        public void CreateSamplerDescription(int index, out SamplerDescription description)
         {
-            return ref _chunks.Buffers.GetAt(_data, index).Description;
+            ref var samplerData = ref _chunks.Sampler.GetAt(_data, index);
+            description = new SamplerDescription(
+                samplerData.AddressModeU,
+                samplerData.AddressModeV,
+                samplerData.AddressModeW,
+                samplerData.Filter,
+                samplerData.ComparisonKind,
+                samplerData.MaximumAnisotropy,
+                samplerData.MinimumLod,
+                samplerData.MaximumLod,
+                samplerData.LodBias,
+                samplerData.BorderColor);
+        }
+
+        public Sampler CreateSampler(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
+        {
+            CreateSamplerDescription(index, out var description);
+            return resourceFactory.CreateSampler(description);
+        }
+
+        private void GetBufferDescription(int index, out BufferDescription description)
+        {
+            ref var bufferData = ref _chunks.Buffers.GetAt(_data, index);
+            ref var blob = ref _chunks.BinaryBlobs.GetAt(_data, bufferData.BlobIndex);
+            description.SizeInBytes = (uint)blob.Count;
+            description.Usage = bufferData.Usage;
+            description.StructureByteStride = bufferData.StructureByteStride;
+            description.RawBuffer = bufferData.RawBuffer;
         }
 
         public ref VertexBufferViewData GetVertexBufferView(int index)
@@ -97,13 +121,20 @@ namespace Veldrid.PBR
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe string GetString(int index)
+        private Span<char> GetStringView(int index)
         {
             var indexRange = _chunks.Strings.GetAt(_data, index);
-            var span = MemoryMarshal.Cast<byte, char>(_data.Span.Slice(indexRange.StartIndex, indexRange.Count));
+            return MemoryMarshal.Cast<byte, char>(_data.Span.Slice(indexRange.StartIndex, indexRange.Count));
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe string GetString(int index)
+        {
+            var span = GetStringView(index);
             fixed (char* value = &span.GetPinnableReference())
             {
-                return new string(value, 0, indexRange.Count / 2);
+                return new string(value, 0, span.Length);
             }
         }
 

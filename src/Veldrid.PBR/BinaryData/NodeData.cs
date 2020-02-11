@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Veldrid.PBR
+namespace Veldrid.PBR.BinaryData
 {
     public struct NodeData
     {

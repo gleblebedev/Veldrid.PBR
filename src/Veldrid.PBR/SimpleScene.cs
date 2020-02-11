@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 using Veldrid.PBR.Unlit;
-using Veldrid.SPIRV;
 
 namespace Veldrid.PBR
 {
@@ -27,7 +25,7 @@ namespace Veldrid.PBR
         private readonly DeviceBuffer _projViewBuffer;
         private readonly DeviceBuffer _modelBuffer;
         private float _angle;
-        private UnlitShaderFactory _unlitShaderFactory;
+        private readonly UnlitShaderFactory _unlitShaderFactory;
 
         public SimpleScene(GraphicsDevice graphicsDevice, Swapchain swapchain, ResourceCache resourceCache,
             PbrContent content)
@@ -67,7 +65,7 @@ namespace Veldrid.PBR
                 _content.GetVertexLayoutDescription(_content.GetVertexBufferView(0).Elements)
             };
 
-            var shaders = _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(){Elements = vertexLayouts [0]});
+            var shaders = _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey {Elements = vertexLayouts[0]});
 
             _pipelines = new List<Pipeline>(1);
             //foreach (var pipelineData in _content.Pipelines)

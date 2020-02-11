@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Veldrid.PBR
+namespace Veldrid.PBR.BinaryData
 {
     /// <summary>
     ///     Describes a single element of a vertex.

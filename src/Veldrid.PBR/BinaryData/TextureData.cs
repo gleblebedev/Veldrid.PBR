@@ -1,4 +1,4 @@
-﻿namespace Veldrid.PBR
+﻿namespace Veldrid.PBR.BinaryData
 {
     public struct TextureData
     {

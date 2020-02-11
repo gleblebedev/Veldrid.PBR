@@ -14,6 +14,7 @@ namespace Veldrid.PBR
         }
 
         public override VertexElementFormat VertexElementFormat => VertexElementFormat.Float3;
+        public override int Count => _values.Length;
         public Vector3[] Values => _values;
 
         public override void Write(BinaryWriter vertexWriter, int index)

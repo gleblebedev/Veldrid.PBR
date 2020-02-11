@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Veldrid.PBR
+namespace Veldrid.PBR.BinaryData
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct VertexBufferViewData

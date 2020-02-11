@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace Veldrid.PBR
+namespace Veldrid.PBR.BinaryData
 {
     public struct IndexRange : IEnumerable<int>
     {

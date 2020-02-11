@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Veldrid.PBR.BinaryData;
 
 namespace Veldrid.PBR
 {
@@ -28,8 +29,7 @@ namespace Veldrid.PBR
         public void Write(ContentToWrite content)
         {
             Write(PbrContent.Magic);
-            Write(new VersionValue(typeof(GraphicsDevice).Assembly.GetName().Version));
-            Write(new VersionValue(PbrContent.CurrentVersion));
+            Write(PbrContent.CurrentVersion);
             var lumps = new Chunks();
             var lumpPos = Position;
             Write(ref lumps);
@@ -72,11 +72,6 @@ namespace Veldrid.PBR
                 if (bufferData.BlobIndex < 0 || bufferData.BlobIndex >= content.BinaryBlobs.Count)
                     throw new IndexOutOfRangeException(
                         $"BlobIndex {bufferData.BlobIndex} doesn't match number of binary blobs {content.BinaryBlobs.Count}.");
-                var arraySegment = content.BinaryBlobs[bufferData.BlobIndex];
-                if (bufferData.Description.SizeInBytes == 0)
-                    bufferData.Description.SizeInBytes = (uint) arraySegment.Count;
-                else if (bufferData.Description.SizeInBytes != (uint) arraySegment.Count)
-                    throw new IndexOutOfRangeException("Blob size doesn't match buffer size.");
                 Write(bufferData);
             }
 

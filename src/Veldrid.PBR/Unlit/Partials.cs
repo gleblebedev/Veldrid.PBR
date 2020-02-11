@@ -20,6 +20,7 @@ namespace Veldrid.PBR.Unlit
         {
             _key = key;
         }
+
         public string SpirVTypeFromFormat(VertexElementFormat format)
         {
             switch (format)
@@ -31,9 +32,13 @@ namespace Veldrid.PBR.Unlit
                 case VertexElementFormat.Float3:
                     return "vec3";
                 case VertexElementFormat.Float4:
+                case VertexElementFormat.Byte4_Norm:
+                case VertexElementFormat.SByte4_Norm:
+                case VertexElementFormat.Short4_Norm:
+                case VertexElementFormat.UShort4_Norm:
                     return "vec4";
                 default:
-                    throw new NotImplementedException(format+" is not implemented yet.", null);
+                    throw new NotImplementedException(format + " is not implemented yet.", null);
             }
         }
     }

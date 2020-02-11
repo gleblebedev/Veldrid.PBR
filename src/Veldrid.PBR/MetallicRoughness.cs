@@ -1,6 +1,6 @@
 ﻿namespace Veldrid.PBR
 {
-    public class MetallicRoughness: PhysicallyBasedMaterial
+    public class MetallicRoughness : PhysicallyBasedMaterial
     {
         public MapParameters BaseColor;
 

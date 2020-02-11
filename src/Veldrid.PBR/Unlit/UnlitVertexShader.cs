@@ -34,6 +34,7 @@ namespace Veldrid.PBR.Unlit
             
             #line 19 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
 
+    int numColorComponents = 0;
     for (int locationIndex = 0; locationIndex<_key.Elements.Elements.Length; ++locationIndex)
     {
         var element = _key.Elements.Elements[locationIndex];
@@ -43,45 +44,102 @@ namespace Veldrid.PBR.Unlit
             #line hidden
             this.Write("layout(location = ");
             
-            #line 24 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+            #line 25 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(locationIndex));
             
             #line default
             #line hidden
             this.Write(") in ");
             
-            #line 24 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+            #line 25 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(SpirVTypeFromFormat(element.Format)));
             
             #line default
             #line hidden
             this.Write(" ");
             
-            #line 24 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+            #line 25 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(element.Name));
             
             #line default
             #line hidden
             this.Write(";\r\n");
             
-            #line 25 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+            #line 26 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
 
+        if (element.Name == "COLOR_0")
+        {
+            numColorComponents = element.Format.GetNumComponents();
+        }
     }
 
             
             #line default
             #line hidden
-            this.Write(@"
-layout(location = 0) out vec4 fsin_color;
+            this.Write("\r\nlayout(location = 0) out vec4 fsin_color;\r\n\r\nvoid main()\r\n{\r\n    vec4 worldPosi" +
+                    "tion = Model * vec4(POSITION, 1);\r\n    vec4 viewPosition = View * worldPosition;" +
+                    "\r\n    vec4 clipPosition = Projection * viewPosition;\r\n");
+            
+            #line 41 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
 
-void main()
+switch (numColorComponents)
 {
-    vec4 worldPosition = Model * vec4(POSITION, 1);
-    vec4 viewPosition = View * worldPosition;
-    vec4 clipPosition = Projection * viewPosition;
-    fsin_color = vec4(NORMAL,1);
-    gl_Position = clipPosition;
-}");
+    case 0:
+
+            
+            #line default
+            #line hidden
+            this.Write("    fsin_color = vec4(1,1,1,1);\r\n");
+            
+            #line 47 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+
+        break;
+    case 1:
+
+            
+            #line default
+            #line hidden
+            this.Write("    fsin_color = vec4(COLOR_0,0,0,1);\r\n");
+            
+            #line 52 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+
+        break;
+    case 2:
+
+            
+            #line default
+            #line hidden
+            this.Write("    fsin_color = vec4(COLOR_0.x,COLOR_0.y,0,1);\r\n");
+            
+            #line 57 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+
+        break;
+    case 3:
+
+            
+            #line default
+            #line hidden
+            this.Write("    fsin_color = vec4(COLOR_0.x,COLOR_0.y,COLOR_0.z,1);\r\n");
+            
+            #line 62 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+
+        break;
+    case 4:
+
+            
+            #line default
+            #line hidden
+            this.Write("    fsin_color = vec4(COLOR_0.x,COLOR_0.y,COLOR_0.z,COLOR_0.w);\r\n");
+            
+            #line 67 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
+
+        break;
+}
+
+            
+            #line default
+            #line hidden
+            this.Write("    gl_Position = clipPosition;\r\n}");
             return this.GenerationEnvironment.ToString();
         }
     }

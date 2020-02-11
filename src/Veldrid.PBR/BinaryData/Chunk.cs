@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Veldrid.PBR
+namespace Veldrid.PBR.BinaryData
 {
     public struct Chunk<T> where T : struct
     {
