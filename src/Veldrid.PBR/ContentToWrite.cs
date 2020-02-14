@@ -16,6 +16,8 @@ namespace Veldrid.PBR
         public IList<BufferData> Buffers { get; } = new List<BufferData>();
         public IReadOnlyList<string> Strings => _strings;
         public IList<TextureData> Textures { get; } = new List<TextureData>();
+        public IList<SamplerData> Samplers { get; } = new List<SamplerData>();
+        public IList<UnlitMaterialData> UnlitMaterials { get; } = new List<UnlitMaterialData>();
         public IList<VertexElementData> VertexElements { get; } = new List<VertexElementData>();
         public IList<VertexBufferViewData> BufferViews { get; } = new List<VertexBufferViewData>();
         public IList<PrimitiveData> Primitive { get; } = new List<PrimitiveData>();

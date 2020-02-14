@@ -6,7 +6,7 @@ using System.Numerics;
 using SharpGLTF.Schema2;
 using SharpGLTF.Validation;
 using Veldrid.PBR.BinaryData;
-using Veldrid.PBR.Numerics;
+using Veldrid.PBR.DataStructures;
 
 namespace Veldrid.PBR
 {
@@ -20,6 +20,14 @@ namespace Veldrid.PBR
         private readonly BinaryWriter _vertexWriter;
         private readonly ContentToWrite _content;
         private Dictionary<ComparableList<VertexElementData>, IndexRange> _elements = new Dictionary<ComparableList<VertexElementData>, IndexRange>();
+
+        struct MaterialRef
+        {
+            public int Index;
+            public MaterialType Type;
+        }
+
+        private List<MaterialRef> _materials;
 
         internal GltfConverter(ModelRoot modelRoot)
         {
@@ -47,9 +55,6 @@ namespace Veldrid.PBR
             foreach (var node in _modelRoot.LogicalNodes)
                 if (node.Skin != null && node.Mesh != null)
                     skinPerMesh[node.Mesh.LogicalIndex] = node.Skin;
-            foreach (var mesh in _modelRoot.LogicalMeshes) ConvertMesh(mesh, skinPerMesh[mesh.LogicalIndex]);
-            _content.Buffers.Add(new BufferData(_content.AddBlob(_vertexBuffer), BufferUsage.VertexBuffer));
-            _content.Buffers.Add(new BufferData(_content.AddBlob(_indexBuffer), BufferUsage.IndexBuffer));
             foreach (var texture in _modelRoot.LogicalTextures)
             {
                 var textureData = new TextureData(_content.AddBlob(texture.PrimaryImage.GetImageContent()))
@@ -58,6 +63,18 @@ namespace Veldrid.PBR
                 };
                 _content.Textures.Add(textureData);
             }
+            foreach (var sampler in _modelRoot.LogicalTextureSamplers)
+            {
+                ConvertSampler(sampler);
+            }
+            _materials = new List<MaterialRef>(_modelRoot.LogicalMaterials.Count);
+            foreach (var material in _modelRoot.LogicalMaterials)
+            {
+                _materials.Add(CreateUnlitMaterial(material));
+            }
+            foreach (var mesh in _modelRoot.LogicalMeshes) ConvertMesh(mesh, skinPerMesh[mesh.LogicalIndex]);
+            _content.Buffers.Add(new BufferData(_content.AddBlob(_vertexBuffer), BufferUsage.VertexBuffer));
+            _content.Buffers.Add(new BufferData(_content.AddBlob(_indexBuffer), BufferUsage.IndexBuffer));
 
             foreach (var logicalNode in _modelRoot.LogicalNodes) ConvertNode(logicalNode);
             var buffer = new MemoryStream();
@@ -67,6 +84,131 @@ namespace Veldrid.PBR
             }
 
             Content = buffer.ToArray();
+        }
+
+        private void ConvertSampler(TextureSampler sampler)
+        {
+            var samplerData = new SamplerData();
+            samplerData.AddressModeU = GetAddressMode(sampler.WrapS);
+            samplerData.AddressModeV = GetAddressMode(sampler.WrapT);
+            samplerData.AddressModeW = SamplerAddressMode.Wrap;
+            samplerData.Filter = GetFilter(sampler.MinFilter, sampler.MagFilter);
+            samplerData.ComparisonKind = null;
+            samplerData.MaximumAnisotropy = 4;
+            samplerData.MinimumLod = 0;
+            samplerData.MaximumLod = UInt32.MaxValue;
+            samplerData.LodBias = 0;
+            samplerData.BorderColor = SamplerBorderColor.TransparentBlack;
+            _content.Samplers.Add(samplerData);
+        }
+
+        private SamplerAddressMode GetAddressMode(TextureWrapMode samplerWrapS)
+        {
+            switch (samplerWrapS)
+            {
+                case TextureWrapMode.CLAMP_TO_EDGE:
+                    return SamplerAddressMode.Clamp;
+                case TextureWrapMode.MIRRORED_REPEAT:
+                    return SamplerAddressMode.Mirror;
+                case TextureWrapMode.REPEAT:
+                    return SamplerAddressMode.Wrap;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(samplerWrapS), samplerWrapS, null);
+            }
+        }
+
+        private SamplerFilter GetFilter(TextureMipMapFilter samplerMinFilter, TextureInterpolationFilter samplerMagFilter)
+        {
+            return SamplerFilter.Anisotropic;
+        }
+
+        private MaterialRef CreateUnlitMaterial(Material material)
+        {
+            var unlitMaterial = new UnlitMaterialData();
+            unlitMaterial.Base = CreateMaterialBase(material);
+            unlitMaterial.BaseColorMapUV = MapUV.Default;
+            unlitMaterial.BaseColorSampler = -1;
+            unlitMaterial.BaseColorMap = -1;
+            var baseColor = material.FindChannel(KnownChannels.BaseColor) ?? material.FindChannel(KnownChannels.Diffuse);
+            if (baseColor != null)
+            {
+                var channel = baseColor.Value;
+                unlitMaterial.Base.BaseColorFactor = channel.Parameter;
+                if (channel.Texture != null)
+                    unlitMaterial.BaseColorMap = channel.Texture.LogicalIndex;
+                unlitMaterial.BaseColorMapUV = GetUV(channel.TextureCoordinate, channel.TextureTransform);
+                if (channel.TextureSampler != null)
+                    unlitMaterial.BaseColorSampler = channel.TextureSampler.LogicalIndex;
+            }
+ 
+            var res = new MaterialRef() {Index = _content.UnlitMaterials.Count, Type = MaterialType.Unlit};
+            _content.UnlitMaterials.Add(unlitMaterial);
+            return res;
+        }
+
+        private MapUV GetUV(int uvSet, TextureTransform transform)
+        {
+            var res = MapUV.Default;
+            res.Set = (uint) (transform?.TextureCoordinateOverride ?? uvSet);
+            if (transform != null)
+            {
+                var num1 = (float)Math.Cos(transform.Rotation);
+                var num2 = (float)Math.Sin(transform.Rotation);
+                var M11 = num1 * transform.Scale.X;
+                var M12 = num2 * transform.Scale.X;
+                var M21 = -num2 * transform.Scale.Y;
+                var M22 = num1 * transform.Scale.Y;
+                var transformOffset = transform.Offset;
+
+                res.X = new Vector3(M11, M12, transformOffset.X);
+                res.Y = new Vector3(M21, M22, transformOffset.Y);
+            }
+            return res;
+        }
+
+
+        private MaterialDataBase CreateMaterialBase(Material material)
+        {
+            var materialBase = new MaterialDataBase()
+            {
+                AlphaMode = GetAlphaMode(material.Alpha),
+                AlphaCutoff = material.AlphaCutoff,
+                BaseColorFactor = Vector4.One
+            };
+            var baseColor = material.FindChannel(KnownChannels.BaseColor) ?? material.FindChannel(KnownChannels.Diffuse);
+            if (baseColor != null)
+            {
+                materialBase.BaseColorFactor = baseColor.Value.Parameter;
+            }
+            return materialBase;
+        }
+
+        public static class KnownChannels
+        {
+            public const string Normal = "Normal";
+            public const string Occlusion = "Occlusion";
+            public const string Emissive = "Emissive";
+
+            public const string BaseColor = "BaseColor";
+            public const string MetallicRoughness = "MetallicRoughness";
+
+            public const string Diffuse = "Diffuse";
+            public const string SpecularGlossiness = "SpecularGlossiness";
+        }
+
+        private AlphaMode GetAlphaMode(SharpGLTF.Schema2.AlphaMode materialAlpha)
+        {
+            switch (materialAlpha)
+            {
+                case SharpGLTF.Schema2.AlphaMode.OPAQUE:
+                    return AlphaMode.Opaque;
+                case SharpGLTF.Schema2.AlphaMode.MASK:
+                    return AlphaMode.Mask;
+                case SharpGLTF.Schema2.AlphaMode.BLEND:
+                    return AlphaMode.Blend;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(materialAlpha), materialAlpha, null);
+            }
         }
 
         private void ConvertNode(Node logicalNode)
@@ -226,11 +368,6 @@ namespace Veldrid.PBR
             _content.BufferViews.Add(vertexBufferViewData);
 
             return attributes;
-        }
-
-        private ByteVector4VertexAttribute GenerateColors()
-        {
-            return new ByteVector4VertexAttribute("COLOR_0", new ByteVector4(255, 255, 255, 255), true);
         }
 
         private Vector3ArrayVertexAttribute GenerateNormals(Float3VertexAttribute positions, MeshPrimitive primitive)

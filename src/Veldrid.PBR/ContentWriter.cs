@@ -87,6 +87,10 @@ namespace Veldrid.PBR
                 Write(texture);
             }
 
+            lumps.Samplers.Offset = Position;
+            lumps.Samplers.Count = content.Samplers.Count;
+            Write(content.Samplers);
+
             lumps.VertexElements.Offset = Position;
             lumps.VertexElements.Count = content.VertexElements.Count;
             Write(content.VertexElements);
@@ -94,6 +98,10 @@ namespace Veldrid.PBR
             lumps.BufferViews.Offset = Position;
             lumps.BufferViews.Count = content.BufferViews.Count;
             Write(content.BufferViews);
+
+            lumps.UnlitMaterials.Offset = Position;
+            lumps.UnlitMaterials.Count = content.UnlitMaterials.Count;
+            Write(content.UnlitMaterials);
 
             lumps.Primitives.Offset = Position;
             lumps.Primitives.Count = content.Primitive.Count;

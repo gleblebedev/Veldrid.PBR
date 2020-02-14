@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Veldrid.PBR.DataStructures;
 using Veldrid.PBR.Unlit;
 
 namespace Veldrid.PBR
@@ -26,7 +27,7 @@ namespace Veldrid.PBR
         private readonly DeviceBuffer _modelBuffer;
         private float _angle;
         private readonly UnlitShaderFactory _unlitShaderFactory;
-
+        private readonly UnlitTechnique _unlitTechnique;
         public SimpleScene(GraphicsDevice graphicsDevice, Swapchain swapchain, ResourceCache resourceCache,
             PbrContent content)
         {
@@ -36,8 +37,15 @@ namespace Veldrid.PBR
             _content = content;
             ResourceFactory = graphicsDevice.ResourceFactory;
             _disposables = new List<IDisposable>();
+            _disposables.Add(content);
             _cl = ResourceFactory.CreateCommandList();
-            _unlitShaderFactory = new UnlitShaderFactory(graphicsDevice.ResourceFactory);
+            {
+                _unlitShaderFactory = new UnlitShaderFactory(graphicsDevice.ResourceFactory);
+                var simpleUniformPool =
+                    new SimpleUniformPool<UnlitMaterialArguments>((uint) content.NumUnlitMaterials, _graphicsDevice);
+                _disposables.Add(simpleUniformPool);
+                _unlitTechnique = new UnlitTechnique(simpleUniformPool);
+            }
             _disposables.Add(_unlitShaderFactory);
             _disposables.Add(_cl);
 
@@ -58,6 +66,13 @@ namespace Veldrid.PBR
                 var deviceBuffer = _content.CreateBuffer(index, graphicsDevice, ResourceFactory);
                 _buffers.Add(deviceBuffer);
                 _disposables.Add(deviceBuffer);
+            }
+
+            var unlitMaterials = new UnlitMaterial[_content.NumUnlitMaterials];
+            for (var index = 0; index < _content.NumUnlitMaterials; index++)
+            {
+                var unlitMaterial = _content.CreateUnlitMaterial(index, _graphicsDevice, ResourceFactory);
+                unlitMaterials[index] = unlitMaterial;
             }
 
             var vertexLayouts = new[]

@@ -16,5 +16,7 @@ namespace Veldrid.PBR.BinaryData
         public uint IndexBufferOffset;
         public uint IndexCount;
         public int VertexBufferView;
+        public MaterialType MaterialType;
+        public int Material;
     }
 }

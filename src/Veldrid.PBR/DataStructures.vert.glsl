@@ -1,15 +1,20 @@
 ﻿#version 450
 
-struct UVTransform
+struct MapUV
 {
     vec3 X;
-    vec3 Y;
     int Set;
+    vec3 Y;
+};
+
+struct UnlitMaterialArguments
+{
+    MapUV BaseColorMapUV;
 };
 
 layout (set=0, binding=0) uniform AllTypes
 {
-    UVTransform S;
+    UnlitMaterialArguments S;
 };
 
 void main()

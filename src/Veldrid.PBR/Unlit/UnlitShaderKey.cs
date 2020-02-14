@@ -36,4 +36,9 @@ namespace Veldrid.PBR.Unlit
         public UnlitShaderFlags Flags;
         public VertexLayoutDescription Elements;
     }
+
+    public class MaterialBinding<ImageBasedLightingPasses> : IMaterialBinding<ImageBasedLightingPasses>
+    {
+        public IPassBinding this[ImageBasedLightingPasses pass] => throw new NotImplementedException();
+    }
 }
