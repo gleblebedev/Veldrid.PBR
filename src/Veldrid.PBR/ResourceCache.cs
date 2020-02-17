@@ -8,8 +8,6 @@ namespace Veldrid.PBR
         public static readonly ResourceLayoutDescription ProjViewLayoutDescription = new ResourceLayoutDescription(
             new ResourceLayoutElementDescription("ViewProjection", ResourceKind.UniformBuffer, ShaderStages.Vertex));
 
-        private readonly ResourceFactory _resourceFactory;
-
         private readonly Dictionary<GraphicsPipelineDescription, Pipeline> s_pipelines
             = new Dictionary<GraphicsPipelineDescription, Pipeline>();
 
@@ -23,16 +21,16 @@ namespace Veldrid.PBR
 
         public ResourceCache(ResourceFactory resourceFactory)
         {
-            _resourceFactory = resourceFactory;
+            ResourceFactory = resourceFactory;
         }
 
-        public ResourceFactory ResourceFactory => _resourceFactory;
+        public ResourceFactory ResourceFactory { get; }
 
         public Pipeline GetPipeline(ref GraphicsPipelineDescription desc)
         {
             if (!s_pipelines.TryGetValue(desc, out var p))
             {
-                p = _resourceFactory.CreateGraphicsPipeline(ref desc);
+                p = ResourceFactory.CreateGraphicsPipeline(ref desc);
                 s_pipelines.Add(desc, p);
             }
 
@@ -43,7 +41,7 @@ namespace Veldrid.PBR
         {
             if (!s_layouts.TryGetValue(desc, out var p))
             {
-                p = _resourceFactory.CreateResourceLayout(ref desc);
+                p = ResourceFactory.CreateResourceLayout(ref desc);
                 s_layouts.Add(desc, p);
             }
 
@@ -69,7 +67,7 @@ namespace Veldrid.PBR
         {
             if (!s_textureViews.TryGetValue(texture, out var view))
             {
-                view = _resourceFactory.CreateTextureView(texture);
+                view = ResourceFactory.CreateTextureView(texture);
                 s_textureViews.Add(texture, view);
             }
 
@@ -80,7 +78,7 @@ namespace Veldrid.PBR
         {
             if (!s_resourceSets.TryGetValue(description, out var ret))
             {
-                ret = _resourceFactory.CreateResourceSet(ref description);
+                ret = ResourceFactory.CreateResourceSet(ref description);
                 s_resourceSets.Add(description, ret);
             }
 

@@ -14,10 +14,7 @@ namespace Veldrid.PBR.BinaryData
             Count = count;
         }
 
-        public int this[int index]
-        {
-            get { return StartIndex + index; }
-        }
+        public int this[int index] => StartIndex + index;
 
         public IEnumerable<T> Enumerate<T>(IReadOnlyList<T> values)
         {

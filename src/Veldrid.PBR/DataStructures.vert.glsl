@@ -9,6 +9,8 @@ struct MapUV
 
 layout (set=0, binding=0) uniform UnlitMaterialArguments
 {
+    vec4 BaseColorFactor;
+    float AlphaCutoff;
     MapUV BaseColorMapUV; 
 };
 

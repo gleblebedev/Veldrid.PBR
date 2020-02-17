@@ -1,6 +1,4 @@
-﻿using System.Numerics;
-
-namespace Veldrid.PBR
+﻿namespace Veldrid.PBR
 {
     public class UnlitMaterial : MaterialBase
     {

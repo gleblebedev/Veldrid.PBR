@@ -1,6 +1,5 @@
 ﻿using System;
 using Veldrid.PBR.BinaryData;
-using Vulkan;
 
 namespace Veldrid.PBR
 {

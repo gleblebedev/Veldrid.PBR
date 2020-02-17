@@ -8,7 +8,7 @@ using Veldrid.PBR.BinaryData;
 
 namespace Veldrid.PBR
 {
-    public class PbrContent:IDisposable
+    public class PbrContent : IDisposable
     {
         internal static readonly VersionValue CurrentVersion = new VersionValue(new Version(0, 0, 0, 0));
 
@@ -17,9 +17,9 @@ namespace Veldrid.PBR
 
         private readonly Memory<byte> _data;
         private Chunks _chunks;
-        private Sampler[] _samplers;
-        private Texture[] _textures;
-        private TextureView[] _textureViews;
+        private readonly Sampler[] _samplers;
+        private readonly Texture[] _textures;
+        private readonly TextureView[] _textureViews;
 
         public PbrContent(Memory<byte> data)
         {
@@ -104,16 +104,6 @@ namespace Veldrid.PBR
             return resourceFactory.CreateSampler(description);
         }
 
-        private void GetBufferDescription(int index, out BufferDescription description)
-        {
-            ref var bufferData = ref _chunks.Buffers.GetAt(_data, index);
-            ref var blob = ref _chunks.BinaryBlobs.GetAt(_data, bufferData.BlobIndex);
-            description.SizeInBytes = (uint)blob.Count;
-            description.Usage = bufferData.Usage;
-            description.StructureByteStride = bufferData.StructureByteStride;
-            description.RawBuffer = bufferData.RawBuffer;
-        }
-
         public ref VertexBufferViewData GetVertexBufferView(int index)
         {
             return ref _chunks.BufferViews.GetAt(_data, index);
@@ -149,6 +139,47 @@ namespace Veldrid.PBR
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref MaterialReference GetMaterialReference(int index)
+        {
+            return ref _chunks.MaterialBindings.GetAt(_data, index);
+        }
+
+        public UnlitMaterial CreateUnlitMaterial(int index, GraphicsDevice graphicsDevice,
+            ResourceFactory resourceFactory)
+        {
+            ref var unlitMaterialData = ref _chunks.UnlitMaterials.GetAt(_data, index);
+            return new UnlitMaterial
+            {
+                AlphaMode = unlitMaterialData.Base.AlphaMode,
+                AlphaCutoff = unlitMaterialData.Base.AlphaCutoff,
+                BaseColorFactor = unlitMaterialData.Base.BaseColorFactor,
+                BaseColorMap = new MapParameters
+                {
+                    Sampler = GetOrCreateSampler(unlitMaterialData.BaseColorSampler, graphicsDevice, resourceFactory),
+                    Map = GetOrCreateTextureView(unlitMaterialData.BaseColorMap, graphicsDevice, resourceFactory),
+                    UV = unlitMaterialData.BaseColorMapUV
+                }
+            };
+        }
+
+        public void Dispose()
+        {
+            foreach (var sampler in _samplers) sampler?.Dispose();
+            foreach (var textureView in _textureViews) textureView?.Dispose();
+            foreach (var texture in _textures) texture?.Dispose();
+        }
+
+        private void GetBufferDescription(int index, out BufferDescription description)
+        {
+            ref var bufferData = ref _chunks.Buffers.GetAt(_data, index);
+            ref var blob = ref _chunks.BinaryBlobs.GetAt(_data, bufferData.BlobIndex);
+            description.SizeInBytes = (uint) blob.Count;
+            description.Usage = bufferData.Usage;
+            description.StructureByteStride = bufferData.StructureByteStride;
+            description.RawBuffer = bufferData.RawBuffer;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IndexRange GetBlob(int index)
         {
             return _chunks.BinaryBlobs.GetAt(_data, index);
@@ -159,12 +190,6 @@ namespace Veldrid.PBR
         {
             var indexRange = _chunks.Strings.GetAt(_data, index);
             return MemoryMarshal.Cast<byte, char>(_data.Span.Slice(indexRange.StartIndex, indexRange.Count));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref MaterialReference GetMaterialReference(int index)
-        {
-            return ref _chunks.MaterialBindings.GetAt(_data, index);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -191,44 +216,14 @@ namespace Veldrid.PBR
             return pos + size;
         }
 
-        public UnlitMaterial CreateUnlitMaterial(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
-        {
-            ref var unlitMaterialData = ref _chunks.UnlitMaterials.GetAt(_data, index);
-            return new UnlitMaterial()
-            {
-                AlphaMode = unlitMaterialData.Base.AlphaMode,
-                AlphaCutoff = unlitMaterialData.Base.AlphaCutoff,
-                BaseColorFactor = unlitMaterialData.Base.BaseColorFactor,
-                BaseColorMap = new MapParameters()
-                {
-                    Sampler = GetOrCreateSampler(unlitMaterialData.BaseColorSampler, graphicsDevice, resourceFactory),
-                    Map = GetOrCreateTextureView(unlitMaterialData.BaseColorMap, graphicsDevice, resourceFactory),
-                    UV = unlitMaterialData.BaseColorMapUV
-                }
-            };
-        }
-
-        private TextureView GetOrCreateTextureView(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
+        private TextureView GetOrCreateTextureView(int index, GraphicsDevice graphicsDevice,
+            ResourceFactory resourceFactory)
         {
             if (index < 0)
                 return null;
-            return _textureViews[index] ?? (_textureViews[index] = resourceFactory.CreateTextureView(new TextureViewDescription(GetOrCreateTexture(index, graphicsDevice, resourceFactory))));
-        }
-
-        public void Dispose()
-        {
-            foreach (var sampler in _samplers)
-            {
-                sampler?.Dispose();
-            }
-            foreach (var textureView in _textureViews)
-            {
-                textureView?.Dispose();
-            }
-            foreach (var texture in _textures)
-            {
-                texture?.Dispose();
-            }
+            return _textureViews[index] ?? (_textureViews[index] =
+                       resourceFactory.CreateTextureView(
+                           new TextureViewDescription(GetOrCreateTexture(index, graphicsDevice, resourceFactory))));
         }
     }
 }

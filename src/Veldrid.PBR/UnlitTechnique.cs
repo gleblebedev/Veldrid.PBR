@@ -8,6 +8,7 @@ namespace Veldrid.PBR
         private readonly IUniformPool<UnlitMaterialArguments> _uniformPool;
         private readonly UnlitShaderFactory _unlitShaderFactory;
         private readonly ImageBasedLighting _renderPipeline;
+        private uint _materialOffset;
 
         public UnlitTechnique(IUniformPool<UnlitMaterialArguments> uniformPool, UnlitShaderFactory unlitShaderFactory,
             ImageBasedLighting renderPipeline)
@@ -16,13 +17,22 @@ namespace Veldrid.PBR
             _unlitShaderFactory = unlitShaderFactory;
             _renderPipeline = renderPipeline;
         }
+
+        public void Dispose()
+        {
+            _uniformPool.Release(_materialOffset);
+        }
+
         public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(
             UnlitMaterial material,
             PrimitiveTopology topology,
             uint indexCount, uint modelUniformOffset,
             VertexLayoutDescription vertexLayoutDescription)
         {
-            var shaders = _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(UnlitShaderFlags.None, vertexLayoutDescription));
+            //_materialOffset = _uniformPool.Allocate();
+            var shaders =
+                _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(UnlitShaderFlags.None,
+                    vertexLayoutDescription));
             var description = new GraphicsPipelineDescription();
             description.BlendState = BlendStateDescription.SingleOverrideBlend;
             description.DepthStencilState = DepthStencilStateDescription.DepthOnlyLessEqual;
@@ -35,11 +45,12 @@ namespace Veldrid.PBR
                 DepthClipEnabled = true,
                 ScissorTestEnabled = false
             };
-            description.ShaderSet = new ShaderSetDescription(new VertexLayoutDescription[]{vertexLayoutDescription}, shaders);
+            description.ShaderSet = new ShaderSetDescription(new[] {vertexLayoutDescription}, shaders);
             description.ResourceLayouts = _renderPipeline.GetResourceLayouts(ImageBasedLightingPasses.Opaque);
             description.Outputs = _renderPipeline.OutputDescription;
             var pipeline = _renderPipeline.ResourceCache.GetPipeline(ref description);
-            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, _renderPipeline.ResourceSet, modelUniformOffset));
+            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, _renderPipeline.ResourceSet,
+                modelUniformOffset, _materialOffset));
         }
     }
 }

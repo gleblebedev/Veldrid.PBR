@@ -1,6 +1,4 @@
-﻿using Veldrid.PBR.BinaryData;
-
-namespace Veldrid.PBR
+﻿namespace Veldrid.PBR
 {
     public interface IMaterialBinding<TPass>
     {

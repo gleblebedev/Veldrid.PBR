@@ -5,20 +5,17 @@ namespace Veldrid.PBR
 {
     internal struct BitMask
     {
-        private ulong[] _bits;
+        private readonly ulong[] _bits;
 
         public BitMask(uint numBits)
         {
-            _bits = new ulong[(int)((numBits + 63) / 64)];
+            _bits = new ulong[(int) ((numBits + 63) / 64)];
         }
 
         public bool this[uint index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return 0 != (_bits[index >> 64] & (1ul << ((int)index & 63)));
-            }
+            get => 0 != (_bits[index >> 64] & (1ul << ((int) index & 63)));
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
@@ -28,6 +25,7 @@ namespace Veldrid.PBR
                     ResetAt(index);
             }
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint FindFirstAvailableBit()
         {
@@ -37,28 +35,29 @@ namespace Veldrid.PBR
                 if (mask != ~0ul)
                 {
                     ulong bitMask = 1;
-                    for (int subIndex = 0; subIndex < 64; ++subIndex)
+                    for (var subIndex = 0; subIndex < 64; ++subIndex)
                     {
-                        if (0ul == (mask & bitMask))
-                        {
-                            return (uint)index * 64 + (uint)subIndex;
-                        }
+                        if (0ul == (mask & bitMask)) return (uint) index * 64 + (uint) subIndex;
 
                         bitMask <<= 1;
                     }
                 }
             }
+
             throw new IndexOutOfRangeException("No more elements available.");
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetAt(uint index)
         {
-            _bits[index >> 64] |= (1ul << ((int)index & 63));
+            var arrayIndex = index >> 6;
+            _bits[arrayIndex] |= 1ul << ((int) index & 63);
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ResetAt(uint index)
         {
-            _bits[index >> 64] &= ~(1ul << ((int)index & 63));
+            _bits[index >> 6] &= ~(1ul << ((int) index & 63));
         }
     }
 }

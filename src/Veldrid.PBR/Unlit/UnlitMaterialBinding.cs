@@ -8,6 +8,7 @@
         {
             _bindings = bindings;
         }
+
         public IPassBinding this[ImageBasedLightingPasses pass] => _bindings[(int) pass];
     }
 }

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Veldrid.PBR.BinaryData
+﻿namespace Veldrid.PBR.BinaryData
 {
     public struct Chunks
     {
@@ -16,6 +14,5 @@ namespace Veldrid.PBR.BinaryData
         public Chunk<PrimitiveData> Primitives;
         public Chunk<MeshData> Meshes;
         public Chunk<NodeData> Nodes;
-
     }
 }
