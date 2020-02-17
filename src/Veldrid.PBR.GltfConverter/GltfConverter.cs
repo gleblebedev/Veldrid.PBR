@@ -149,7 +149,7 @@ namespace Veldrid.PBR
         private MapUV GetUV(int uvSet, TextureTransform transform)
         {
             var res = MapUV.Default;
-            res.Set = (uint) (transform?.TextureCoordinateOverride ?? uvSet);
+            res.Set = (int) (transform?.TextureCoordinateOverride ?? uvSet);
             if (transform != null)
             {
                 var num1 = (float)Math.Cos(transform.Rotation);

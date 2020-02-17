@@ -9,9 +9,9 @@ namespace Veldrid.PBR
         {
         }
 
-        public void UpdateBuffer(uint index, ref T value)
+        public void UpdateBuffer(uint offset, ref T value)
         {
-            base.Upload(index, ref value);
+            base.Upload(offset, ref value);
         }
     }
 }

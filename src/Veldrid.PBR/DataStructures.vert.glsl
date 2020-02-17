@@ -7,14 +7,14 @@ struct MapUV
     vec3 Y;
 };
 
-struct UnlitMaterialArguments
+layout (set=0, binding=0) uniform UnlitMaterialArguments
 {
-    MapUV BaseColorMapUV;
+    MapUV BaseColorMapUV; 
 };
 
-layout (set=0, binding=0) uniform AllTypes
+layout (set=0, binding=1) uniform NodeProperties
 {
-    UnlitMaterialArguments S;
+    mat4 WorldTransform;
 };
 
 void main()
