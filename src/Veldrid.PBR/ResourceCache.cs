@@ -26,6 +26,8 @@ namespace Veldrid.PBR
             _resourceFactory = resourceFactory;
         }
 
+        public ResourceFactory ResourceFactory => _resourceFactory;
+
         public Pipeline GetPipeline(ref GraphicsPipelineDescription desc)
         {
             if (!s_pipelines.TryGetValue(desc, out var p))

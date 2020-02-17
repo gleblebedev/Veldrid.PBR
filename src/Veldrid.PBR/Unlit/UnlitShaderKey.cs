@@ -4,6 +4,15 @@ namespace Veldrid.PBR.Unlit
 {
     public struct UnlitShaderKey : IEquatable<UnlitShaderKey>
     {
+        public UnlitShaderFlags Flags;
+        public VertexLayoutDescription Elements;
+
+        public UnlitShaderKey(UnlitShaderFlags flags, VertexLayoutDescription elements)
+        {
+            Flags = flags;
+            Elements = elements;
+        }
+
         public bool Equals(UnlitShaderKey other)
         {
             return Flags == other.Flags && Elements.Equals(other.Elements);
@@ -31,14 +40,5 @@ namespace Veldrid.PBR.Unlit
         {
             return !left.Equals(right);
         }
-
-
-        public UnlitShaderFlags Flags;
-        public VertexLayoutDescription Elements;
-    }
-
-    public class MaterialBinding<ImageBasedLightingPasses> : IMaterialBinding<ImageBasedLightingPasses>
-    {
-        public IPassBinding this[ImageBasedLightingPasses pass] => throw new NotImplementedException();
     }
 }

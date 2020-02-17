@@ -12,6 +12,7 @@ namespace Veldrid.PBR
         /// <returns>Offset in the buffer for the allocated data.</returns>
         uint Allocate();
         void Release(uint offset);
+        BindableResource BindableResource { get; }
     }
     public interface IUniformPool<T>: IUniformPool
     {

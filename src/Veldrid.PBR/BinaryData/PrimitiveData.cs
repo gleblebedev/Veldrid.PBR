@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Veldrid.PBR.BinaryData
 {
@@ -16,7 +17,7 @@ namespace Veldrid.PBR.BinaryData
         public uint IndexBufferOffset;
         public uint IndexCount;
         public int VertexBufferView;
-        public MaterialType MaterialType;
-        public int Material;
+        public Vector3 BoundingBoxMin;
+        public Vector3 BoundingBoxMax;
     }
 }

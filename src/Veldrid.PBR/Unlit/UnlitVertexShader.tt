@@ -12,7 +12,7 @@ layout(set = 0, binding = 0) uniform ViewProjection
 };
 layout(set = 0, binding = 1) uniform ModelBuffer
 {
-    mat4 Model;
+    mat4 WorldTransform;
 };
 
 
@@ -35,7 +35,7 @@ layout(location = 0) out vec4 fsin_color;
 
 void main()
 {
-    vec4 worldPosition = Model * vec4(POSITION, 1);
+    vec4 worldPosition = WorldTransform * vec4(POSITION, 1);
     vec4 viewPosition = View * worldPosition;
     vec4 clipPosition = Projection * viewPosition;
 <#

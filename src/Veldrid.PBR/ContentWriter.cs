@@ -103,6 +103,10 @@ namespace Veldrid.PBR
             lumps.UnlitMaterials.Count = content.UnlitMaterials.Count;
             Write(content.UnlitMaterials);
 
+            lumps.MaterialBindings.Offset = Position;
+            lumps.MaterialBindings.Count = content.MaterialBindings.Count;
+            Write(content.MaterialBindings);
+
             lumps.Primitives.Offset = Position;
             lumps.Primitives.Count = content.Primitive.Count;
             Write(content.Primitive);
@@ -110,7 +114,6 @@ namespace Veldrid.PBR
             lumps.Meshes.Offset = Position;
             lumps.Meshes.Count = content.Mesh.Count;
             Write(content.Mesh);
-
 
             lumps.Nodes.Offset = Position;
             lumps.Nodes.Count = content.Node.Count;

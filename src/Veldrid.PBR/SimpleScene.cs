@@ -12,12 +12,11 @@ namespace Veldrid.PBR
     {
         public class SimpleNode
         {
-            public uint UniformOffset;
             public NodeData NodeData;
+            public int MeshIndex;
+            public IMaterialBinding<ImageBasedLightingPasses>[] MaterialBindings;
+            public uint ModelUniformOffset;
         }
-        public static readonly ResourceLayoutDescription ProjViewModelLayoutDescription = new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("ViewProjection", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-            new ResourceLayoutElementDescription("Model", ResourceKind.UniformBuffer, ShaderStages.Vertex, ResourceLayoutElementOptions.DynamicBinding));
 
         private readonly GraphicsDevice _graphicsDevice;
         private readonly Swapchain _swapchain;
@@ -26,15 +25,14 @@ namespace Veldrid.PBR
         private readonly CommandList _cl;
         private readonly List<IDisposable> _disposables;
         private readonly List<DeviceBuffer> _buffers;
-        private readonly List<Pipeline> _pipelines;
-        private readonly ResourceSet _projViewModelResourceSet;
-        private readonly ResourceLayout _projViewModelLayout;
-        private readonly DeviceBuffer _projViewBuffer;
         private float _angle;
         private readonly UnlitShaderFactory _unlitShaderFactory;
         private readonly UnlitTechnique _unlitTechnique;
         private SimpleNode[] _nodes;
+        private ImageBasedLighting _renderPipeline;
         private SimpleUniformPool<NodeProperties> _nodeProperties;
+        private float _radius;
+        private Vector3 _center;
 
         public SimpleScene(GraphicsDevice graphicsDevice, Swapchain swapchain, ResourceCache resourceCache,
             PbrContent content)
@@ -48,24 +46,23 @@ namespace Veldrid.PBR
             _disposables.Add(content);
             _cl = ResourceFactory.CreateCommandList();
             {
-                _unlitShaderFactory = new UnlitShaderFactory(_graphicsDevice.ResourceFactory);
-                var simpleUniformPool =
-                    new SimpleUniformPool<UnlitMaterialArguments>((uint) content.NumUnlitMaterials, _graphicsDevice);
-                _disposables.Add(simpleUniformPool);
-                _unlitTechnique = new UnlitTechnique(simpleUniformPool);
-            }
-            {
                 _nodeProperties = new SimpleUniformPool<NodeProperties>((uint)_content.NumNodes, _graphicsDevice);
                 _disposables.Add(_nodeProperties);
+            }
+            {
+                _renderPipeline = new ImageBasedLighting(_resourceCache, _swapchain.Framebuffer.OutputDescription, _nodeProperties);
+                _disposables.Add(_renderPipeline);
+            }
+            {
+                _unlitShaderFactory = new UnlitShaderFactory(_graphicsDevice.ResourceFactory);
+                var simpleUniformPool =
+                    new SimpleUniformPool<UnlitMaterialArguments>((uint)content.NumUnlitMaterials, _graphicsDevice);
+                _disposables.Add(simpleUniformPool);
+                _unlitTechnique = new UnlitTechnique(simpleUniformPool, _unlitShaderFactory, _renderPipeline);
             }
             _disposables.Add(_unlitShaderFactory);
             _disposables.Add(_cl);
 
-            _projViewBuffer = ResourceFactory.CreateBuffer(new BufferDescription(2 * 64,
-                BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-
-            _projViewModelLayout = _resourceCache.GetResourceLayout(ProjViewModelLayoutDescription);
-            _projViewModelResourceSet = _resourceCache.GetResourceSet(new ResourceSetDescription(_projViewModelLayout, _projViewBuffer, _nodeProperties.BindableResource));
 
             _buffers = new List<DeviceBuffer>(_content.NumBuffers);
 
@@ -83,87 +80,116 @@ namespace Veldrid.PBR
                 unlitMaterials[index] = unlitMaterial;
             }
 
-            var vertexLayouts = new[]
-            {
-                _content.GetVertexLayoutDescription(_content.GetVertexBufferView(0).Elements)
-            };
-
+            _radius = 0.01f;
             _nodes = new SimpleNode[_content.NumNodes];
+            Vector3 sceneMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 sceneMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
             for (var index = 0; index < _content.NumNodes; index++)
             {
                 var simpleNode = new SimpleNode();
                 var nodeData = _content.GetNode(index);
 
+                var worldTransform = nodeData.WorldTransform;
                 simpleNode.NodeData = nodeData;
-                simpleNode.UniformOffset = _nodeProperties.Allocate();
-                var nodeProperties = new NodeProperties(){ WorldTransform = nodeData.WorldTransform };
-                _nodeProperties.UpdateBuffer(simpleNode.UniformOffset, ref nodeProperties);
+                {
+                    simpleNode.ModelUniformOffset = _nodeProperties.Allocate();
+                    var nodeProperties = new NodeProperties() {WorldTransform = worldTransform };
+                    _nodeProperties.UpdateBuffer(simpleNode.ModelUniformOffset, ref nodeProperties);
+                }
+                if (nodeData.MeshIndex >= 0)
+                {
+                    simpleNode.MeshIndex = nodeData.MeshIndex;
+                    ref var meshData = ref _content.GetMesh(nodeData.MeshIndex);
+                    var bindings = new IMaterialBinding<ImageBasedLightingPasses>[Math.Min(nodeData.MaterialBindings.Count, meshData.Primitives.Count)];
+                    for (int primitiveIndex = 0; primitiveIndex < bindings.Length; ++primitiveIndex)
+                    {
+                        ref var primitive = ref _content.GetPrimitive(meshData.Primitives[primitiveIndex]);
+
+                        var min = Vector3.Transform(primitive.BoundingBoxMin, worldTransform);
+                        var max = Vector3.Transform(primitive.BoundingBoxMax, worldTransform);
+                        foreach (var v in GetBoundingBoxCorners(min, max))
+                        {
+                            sceneMin = Vector3.Min(sceneMin, v);
+                            sceneMax = Vector3.Max(sceneMax, v);
+                        }
+
+                        var materialReference = _content.GetMaterialReference(nodeData.MaterialBindings[primitiveIndex]);
+                        var vertexLayoutDescription = _content.GetVertexLayoutDescription(_content.GetVertexBufferView(primitive.VertexBufferView).Elements);
+                        switch (materialReference.MaterialType)
+                        {
+                            case MaterialType.Unlit:
+                                bindings[primitiveIndex] = _unlitTechnique.BindMaterial(unlitMaterials[materialReference.Material], primitive.PrimitiveTopology, primitive.IndexCount, simpleNode.ModelUniformOffset, vertexLayoutDescription);
+                                break;
+                            default:
+                                throw new NotImplementedException();
+                        }
+                    }
+
+                    simpleNode.MaterialBindings = bindings;
+                }
                 _nodes[index] = simpleNode;
             }
 
-            var shaders = _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey {Elements = vertexLayouts[0]});
+            _center = (sceneMax + sceneMin) * 0.5f;
+            _radius = (sceneMax - sceneMin).Length() * 0.5f;
+        }
 
-            _pipelines = new List<Pipeline>(1);
-            //foreach (var pipelineData in _content.Pipelines)
-            {
-                var description = new GraphicsPipelineDescription();
-                description.BlendState = BlendStateDescription.SingleOverrideBlend;
-                description.DepthStencilState = DepthStencilStateDescription.DepthOnlyLessEqual;
-                description.PrimitiveTopology = PrimitiveTopology.TriangleList;
-                description.RasterizerState = new RasterizerStateDescription
-                {
-                    CullMode = FaceCullMode.None,
-                    FillMode = PolygonFillMode.Solid,
-                    FrontFace = FrontFace.Clockwise,
-                    DepthClipEnabled = true,
-                    ScissorTestEnabled = false
-                };
-                description.ShaderSet = new ShaderSetDescription(vertexLayouts, shaders);
-                description.ResourceLayouts = new[] {_projViewModelLayout};
-                description.Outputs = swapchain.Framebuffer.OutputDescription;
-                var pipeline = _resourceCache.GetPipeline(ref description);
-                _pipelines.Add(pipeline);
-            }
+        private IEnumerable<Vector3> GetBoundingBoxCorners(Vector3 min, Vector3 max)
+        {
+            yield return new Vector3(min.X, min.Y, min.Z);
+            yield return new Vector3(min.X, min.Y, max.Z);
+            yield return new Vector3(min.X, max.Y, min.Z);
+            yield return new Vector3(min.X, max.Y, max.Z);
+            yield return new Vector3(max.X, min.Y, min.Z);
+            yield return new Vector3(max.X, min.Y, max.Z);
+            yield return new Vector3(max.X, max.Y, min.Z);
+            yield return new Vector3(max.X, max.Y, max.Z);
         }
 
         public ResourceFactory ResourceFactory { get; }
 
         public void Render(float deltaSeconds)
         {
-            _angle += deltaSeconds * 0.1f;
+            _angle += deltaSeconds * 0.4f;
             _cl.Begin();
             _cl.SetFramebuffer(_swapchain.Framebuffer);
             _cl.SetFullViewport(0);
             _cl.ClearDepthStencil(1.0f);
             _cl.ClearColorTarget(0, new RgbaFloat(0, 0.1f, 0.5f, 1));
 
-            var viewProj = new ViewProjection();
-            viewProj.Projection = Matrix4x4.CreatePerspectiveFieldOfView(3.14f * 0.5f, 1, 0.1f, 100.0f);
-
-            viewProj.View =
-                Matrix4x4.CreateLookAt(new Vector3((float) Math.Cos(_angle), 1, (float) Math.Sin(_angle)) * 3,
-                    Vector3.Zero, Vector3.UnitY);
-            _cl.UpdateBuffer(_projViewBuffer, 0, ref viewProj);
-
+            var radius = _radius*2;
+            var projection = Matrix4x4.CreatePerspectiveFieldOfView(3.14f * 0.5f, (float)_swapchain.Framebuffer.Width/ (float)_swapchain.Framebuffer.Height, 0.1f, radius * 4.0f);
+            var from = new Vector3((float) Math.Cos(_angle), 1, (float) Math.Sin(_angle)) * radius;
+            var view = Matrix4x4.CreateLookAt(from+_center, _center, Vector3.UnitY);
+            _renderPipeline.UpdateViewProjection(_cl, ref projection, ref view);
 
             for (var index = 0; index < _nodes.Length; index++)
             {
                 var simpleNode = _nodes[index];
-                var node = simpleNode.NodeData;
+                //var node = simpleNode.NodeData;
                 
-                if (node.MeshIndex < 0) continue;
-
-                ref var mesh = ref _content.GetMesh(node.MeshIndex);
-                foreach (var primitiveIndex in mesh.Primitives)
+                if (simpleNode.MaterialBindings == null) continue;
+                for (var i = 0; i < simpleNode.MaterialBindings.Length; i++)
                 {
-                    ref var primitive = ref _content.GetPrimitive(primitiveIndex);
-                    var vbView = _content.GetVertexBufferView(primitive.VertexBufferView);
-                    _cl.SetVertexBuffer(0, _buffers[vbView.Buffer], vbView.Offset);
-                    _cl.SetIndexBuffer(_buffers[primitive.IndexBuffer], primitive.IndexBufferFormat,
-                        primitive.IndexBufferOffset);
-                    _cl.SetPipeline(_pipelines[0]);
-                    _cl.SetGraphicsResourceSet(0, _projViewModelResourceSet, 1, ref simpleNode.UniformOffset);
-                    _cl.DrawIndexed(primitive.IndexCount, 1, 0, 0, 0);
+                    var materialBinding = simpleNode.MaterialBindings[i];
+                    if (materialBinding != null)
+                    {
+                        var passBinding = materialBinding[ImageBasedLightingPasses.Opaque];
+                        if (passBinding != null)
+                        {
+                            ref var mesh = ref _content.GetMesh(simpleNode.MeshIndex);
+
+                            foreach (var primitiveIndex in mesh.Primitives)
+                            {
+                                ref var primitive = ref _content.GetPrimitive(primitiveIndex);
+                                var vbView = _content.GetVertexBufferView(primitive.VertexBufferView);
+                                _cl.SetVertexBuffer(0, _buffers[vbView.Buffer], vbView.Offset);
+                                _cl.SetIndexBuffer(_buffers[primitive.IndexBuffer], primitive.IndexBufferFormat,
+                                    primitive.IndexBufferOffset);
+                                passBinding.Draw(_cl);
+                            }
+                        }
+                    }
                 }
             }
 

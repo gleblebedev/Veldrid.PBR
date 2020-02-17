@@ -12,6 +12,7 @@ namespace Veldrid.PBR.BinaryData
         public Chunk<VertexElementData> VertexElements;
         public Chunk<VertexBufferViewData> BufferViews;
         public Chunk<UnlitMaterialData> UnlitMaterials;
+        public Chunk<MaterialReference> MaterialBindings;
         public Chunk<PrimitiveData> Primitives;
         public Chunk<MeshData> Meshes;
         public Chunk<NodeData> Nodes;

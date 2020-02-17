@@ -30,7 +30,7 @@ namespace Veldrid.PBR.Unlit
         {
             this.Write("#version 450\r\n\r\nlayout(set = 0, binding = 0) uniform ViewProjection\r\n{\r\n    mat4 " +
                     "View;\r\n    mat4 Projection;\r\n};\r\nlayout(set = 0, binding = 1) uniform ModelBuffe" +
-                    "r\r\n{\r\n    mat4 Model;\r\n};\r\n\r\n\r\n");
+                    "r\r\n{\r\n    mat4 WorldTransform;\r\n};\r\n\r\n\r\n");
             
             #line 19 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
 
@@ -77,8 +77,8 @@ namespace Veldrid.PBR.Unlit
             #line default
             #line hidden
             this.Write("\r\nlayout(location = 0) out vec4 fsin_color;\r\n\r\nvoid main()\r\n{\r\n    vec4 worldPosi" +
-                    "tion = Model * vec4(POSITION, 1);\r\n    vec4 viewPosition = View * worldPosition;" +
-                    "\r\n    vec4 clipPosition = Projection * viewPosition;\r\n");
+                    "tion = WorldTransform * vec4(POSITION, 1);\r\n    vec4 viewPosition = View * world" +
+                    "Position;\r\n    vec4 clipPosition = Projection * viewPosition;\r\n");
             
             #line 41 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitVertexShader.tt"
 

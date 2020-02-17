@@ -5,8 +5,8 @@
     ///     There is only one render pass required for IBL as all lighting and reflection information is baked into a single
     ///     cubemap.
     /// </summary>
-    public enum ImageBasedLightingPasses
+    public enum ImageBasedLightingPasses: int
     {
-        IBL
+        Opaque
     }
 }

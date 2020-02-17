@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -19,6 +20,7 @@ namespace Veldrid.PBR
         private readonly ModelRoot _modelRoot;
         private readonly BinaryWriter _vertexWriter;
         private readonly ContentToWrite _content;
+        private int _defaultMaterial = -1;
         private Dictionary<ComparableList<VertexElementData>, IndexRange> _elements = new Dictionary<ComparableList<VertexElementData>, IndexRange>();
 
         struct MaterialRef
@@ -124,11 +126,8 @@ namespace Veldrid.PBR
 
         private MaterialRef CreateUnlitMaterial(Material material)
         {
-            var unlitMaterial = new UnlitMaterialData();
+            var unlitMaterial = UnlitMaterialData.Default;
             unlitMaterial.Base = CreateMaterialBase(material);
-            unlitMaterial.BaseColorMapUV = MapUV.Default;
-            unlitMaterial.BaseColorSampler = -1;
-            unlitMaterial.BaseColorMap = -1;
             var baseColor = material.FindChannel(KnownChannels.BaseColor) ?? material.FindChannel(KnownChannels.Diffuse);
             if (baseColor != null)
             {
@@ -219,10 +218,31 @@ namespace Veldrid.PBR
             {
                 Name = _content.AddString(logicalNode.Name),
                 ParentNode = logicalNode.VisualParent == null ? -1 : logicalNode.VisualParent.LogicalIndex,
-                MeshIndex = logicalNode.Mesh == null ? -1 : logicalNode.Mesh.LogicalIndex,
+                MeshIndex = -1,
                 LocalTransform = logicalNode.LocalMatrix,
-                WorldTransform = logicalNode.WorldMatrix
+                WorldTransform = logicalNode.WorldMatrix,
             };
+            if (logicalNode.Mesh != null)
+            {
+                nodeData.MeshIndex = logicalNode.Mesh.LogicalIndex;
+                nodeData.MaterialBindings = new IndexRange(_content.MaterialBindings.Count, logicalNode.Mesh.Primitives.Count);
+                foreach (var primitive in logicalNode.Mesh.Primitives)
+                {
+                    if (primitive.Material == null)
+                    {
+                        if (_defaultMaterial < 0)
+                        {
+                            _defaultMaterial = _content.UnlitMaterials.Count;
+                            _content.UnlitMaterials.Add(UnlitMaterialData.Default);
+                        }
+                        _content.MaterialBindings.Add(new MaterialReference(MaterialType.Unlit, _defaultMaterial));
+                    }
+                    else
+                    {
+                        _content.MaterialBindings.Add(new MaterialReference(MaterialType.Unlit, primitive.Material.LogicalIndex));
+                    }
+                }
+            }
             _content.Node.Add(nodeData);
         }
 
@@ -272,7 +292,21 @@ namespace Veldrid.PBR
                 }
 
                 var attributes = GetVertexAttributes(primitive);
+                var pos = attributes.Where(_ => _.Key == "POSITION").FirstOrDefault() as Float3VertexAttribute;
+                if (pos != null)
+                {
+                    var bboxMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+                    var bboxMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+                    foreach (var index in indices)
+                    {
+                        var p = pos.Values[index];
+                        bboxMin = Vector3.Min(p, bboxMin);
+                        bboxMax = Vector3.Max(p, bboxMax);
+                    }
 
+                    primitiveData.BoundingBoxMin = bboxMin;
+                    primitiveData.BoundingBoxMax = bboxMax;
+                }
                 var newIndices = new Dictionary<int, int>();
                 primitiveData.IndexBufferFormat =
                     indices.Count <= ushort.MaxValue ? IndexFormat.UInt16 : IndexFormat.UInt32;

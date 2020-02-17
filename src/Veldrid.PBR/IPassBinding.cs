@@ -2,5 +2,6 @@
 {
     public interface IPassBinding
     {
+        void Draw(CommandList commandList);
     }
 }

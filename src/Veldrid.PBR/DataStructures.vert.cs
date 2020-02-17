@@ -28,4 +28,10 @@ namespace Veldrid.PBR.DataStructures
         [FieldOffset(0)]
         public Matrix4x4 WorldTransform;
     }
+    public partial struct ViewProjection
+    {
+        public Matrix4x4 View;
+
+        public Matrix4x4 Projection;
+    }
 }

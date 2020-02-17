@@ -3,8 +3,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using Veldrid.ImageSharp;
 using Veldrid.PBR.BinaryData;
 
@@ -52,6 +50,8 @@ namespace Veldrid.PBR
 
         public Texture GetOrCreateTexture(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
+            if (index < 0)
+                return null;
             return _textures[index] ?? (_textures[index] = CreateTexture(index, graphicsDevice, resourceFactory));
         }
 
@@ -161,6 +161,11 @@ namespace Veldrid.PBR
             return MemoryMarshal.Cast<byte, char>(_data.Span.Slice(indexRange.StartIndex, indexRange.Count));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref MaterialReference GetMaterialReference(int index)
+        {
+            return ref _chunks.MaterialBindings.GetAt(_data, index);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe string GetString(int index)
@@ -197,7 +202,7 @@ namespace Veldrid.PBR
                 BaseColorMap = new MapParameters()
                 {
                     Sampler = GetOrCreateSampler(unlitMaterialData.BaseColorSampler, graphicsDevice, resourceFactory),
-                    Map = GetOrCreateTextureView(index, graphicsDevice, resourceFactory),
+                    Map = GetOrCreateTextureView(unlitMaterialData.BaseColorMap, graphicsDevice, resourceFactory),
                     UV = unlitMaterialData.BaseColorMapUV
                 }
             };
@@ -205,6 +210,8 @@ namespace Veldrid.PBR
 
         private TextureView GetOrCreateTextureView(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
+            if (index < 0)
+                return null;
             return _textureViews[index] ?? (_textureViews[index] = resourceFactory.CreateTextureView(new TextureViewDescription(GetOrCreateTexture(index, graphicsDevice, resourceFactory))));
         }
 
