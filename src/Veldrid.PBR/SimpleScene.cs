@@ -17,8 +17,6 @@ namespace Veldrid.PBR
         private readonly CommandList _cl;
         private readonly List<IDisposable> _disposables;
         private readonly List<DeviceBuffer> _buffers;
-        private readonly UnlitShaderFactory _unlitShaderFactory;
-        private readonly UnlitTechnique _unlitTechnique;
         private float _angle;
         private readonly SimpleNode[] _nodes;
         private readonly ImageBasedLighting _renderPipeline;
@@ -37,25 +35,16 @@ namespace Veldrid.PBR
             _disposables = new List<IDisposable>();
             _disposables.Add(content);
             _cl = ResourceFactory.CreateCommandList();
+            _disposables.Add(_cl);
             {
                 _nodeProperties = new SimpleUniformPool<NodeProperties>((uint) _content.NumNodes, _graphicsDevice);
                 _disposables.Add(_nodeProperties);
             }
             {
-                _renderPipeline = new ImageBasedLighting(_resourceCache, _swapchain.Framebuffer.OutputDescription,
+                _renderPipeline = new ImageBasedLighting(_graphicsDevice, _resourceCache, _swapchain.Framebuffer.OutputDescription,
                     _nodeProperties);
                 _disposables.Add(_renderPipeline);
             }
-            {
-                _unlitShaderFactory = new UnlitShaderFactory(_graphicsDevice.ResourceFactory);
-                var simpleUniformPool =
-                    new SimpleUniformPool<UnlitMaterialArguments>((uint) content.NumUnlitMaterials, _graphicsDevice);
-                _disposables.Add(simpleUniformPool);
-                _unlitTechnique = new UnlitTechnique(simpleUniformPool, _unlitShaderFactory, _renderPipeline);
-            }
-            _disposables.Add(_unlitShaderFactory);
-            _disposables.Add(_cl);
-
 
             _buffers = new List<DeviceBuffer>(_content.NumBuffers);
 
@@ -116,9 +105,12 @@ namespace Veldrid.PBR
                         switch (materialReference.MaterialType)
                         {
                             case MaterialType.Unlit:
-                                bindings[primitiveIndex] = _unlitTechnique.BindMaterial(
+                                bindings[primitiveIndex] = _renderPipeline.BindMaterial(
                                     unlitMaterials[materialReference.Material], primitive.PrimitiveTopology,
                                     primitive.IndexCount, simpleNode.ModelUniformOffset, vertexLayoutDescription);
+                                //bindings[primitiveIndex] = _unlitTechnique.BindMaterial(
+                                //    unlitMaterials[materialReference.Material], primitive.PrimitiveTopology,
+                                //    primitive.IndexCount, simpleNode.ModelUniformOffset, vertexLayoutDescription);
                                 break;
                             default:
                                 throw new NotImplementedException();

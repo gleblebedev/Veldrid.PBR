@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Veldrid.PBR.DataStructures;
+using Veldrid.PBR.Unlit;
 
 namespace Veldrid.PBR
 {
@@ -11,16 +13,26 @@ namespace Veldrid.PBR
             new ResourceLayoutElementDescription("ViewProjection", ResourceKind.UniformBuffer, ShaderStages.Vertex),
             new ResourceLayoutElementDescription("Model", ResourceKind.UniformBuffer, ShaderStages.Vertex,
                 ResourceLayoutElementOptions.DynamicBinding));
+        public static readonly ResourceLayoutDescription UnlitMaterialArgumentsDescription = new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("UnlitMaterialArguments", ResourceKind.UniformBuffer, ShaderStages.Vertex, ResourceLayoutElementOptions.DynamicBinding));
 
         private readonly ResourceLayout _projViewModelLayout;
+        private readonly GraphicsDevice _graphicsDevice;
         private readonly IUniformPool<NodeProperties> _nodeProperties;
 
         private readonly ResourceLayout[] _opaquePassResourceLayouts;
         private readonly DeviceBuffer _projViewBuffer;
 
-        public ImageBasedLighting(ResourceCache resourceCache, OutputDescription outputDescription,
+        private Dictionary<UnlitMaterial, uint> _unlitMaterialOffsets = new Dictionary<UnlitMaterial, uint>();
+        private UnlitShaderFactory _unlitShaderFactory;
+        private UnlitTechnique _unlitTechnique;
+        private SimpleUniformPool<UnlitMaterialArguments> _unlitArgumentsPool;
+        private ResourceLayout _unlitMaterialArgumentsLayout;
+
+        public ImageBasedLighting(GraphicsDevice graphicsDevice, ResourceCache resourceCache, OutputDescription outputDescription,
             IUniformPool<NodeProperties> nodeProperties)
         {
+            _graphicsDevice = graphicsDevice;
             _nodeProperties = nodeProperties;
             ResourceCache = resourceCache;
             OutputDescription = outputDescription;
@@ -28,18 +40,25 @@ namespace Veldrid.PBR
             _projViewBuffer = ResourceCache.ResourceFactory.CreateBuffer(
                 new BufferDescription((uint) Marshal.SizeOf<ViewProjection>(),
                     BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+            _unlitArgumentsPool = new SimpleUniformPool<UnlitMaterialArguments>((uint)1024, _graphicsDevice);
 
             _projViewModelLayout = ResourceCache.GetResourceLayout(ProjViewModelLayoutDescription);
-            ResourceSet = ResourceCache.GetResourceSet(new ResourceSetDescription(_projViewModelLayout, _projViewBuffer,
+            _unlitMaterialArgumentsLayout = ResourceCache.GetResourceLayout(UnlitMaterialArgumentsDescription);
+            ModelViewProjectionResourceSet = ResourceCache.GetResourceSet(new ResourceSetDescription(_projViewModelLayout, _projViewBuffer,
                 _nodeProperties.BindableResource));
-            _opaquePassResourceLayouts = new[] {ResourceCache.GetResourceLayout(ProjViewModelLayoutDescription)};
+            UnlitMaterialResourceSet = ResourceCache.GetResourceSet(new ResourceSetDescription(_unlitMaterialArgumentsLayout, _unlitArgumentsPool.BindableResource));
+            _opaquePassResourceLayouts = new[] { _projViewModelLayout, _unlitMaterialArgumentsLayout };
+
+            _unlitShaderFactory = new UnlitShaderFactory(_graphicsDevice.ResourceFactory);
+            _unlitTechnique = new UnlitTechnique(_unlitShaderFactory, this);
         }
 
         public ResourceCache ResourceCache { get; }
 
         public OutputDescription OutputDescription { get; }
 
-        public ResourceSet ResourceSet { get; }
+        public ResourceSet ModelViewProjectionResourceSet { get; }
+        public ResourceSet UnlitMaterialResourceSet { get; }
 
         public void UpdateViewProjection(CommandList commandList, ref Matrix4x4 projection, ref Matrix4x4 view)
         {
@@ -63,6 +82,30 @@ namespace Veldrid.PBR
             }
 
             throw new IndexOutOfRangeException();
+        }
+
+        public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(UnlitMaterial unlitMaterial, 
+            PrimitiveTopology topology, 
+            uint indexCount, 
+            uint nodeUniformOffset, 
+            VertexLayoutDescription vertexLayoutDescription)
+        {
+            if (unlitMaterial == null)
+                return null;
+            if (!_unlitMaterialOffsets.TryGetValue(unlitMaterial, out var offset))
+            {
+                offset = _unlitArgumentsPool.Allocate();
+                _unlitMaterialOffsets.Add(unlitMaterial, offset);
+                UnlitMaterialArguments args = new UnlitMaterialArguments()
+                {
+                    AlphaCutoff = unlitMaterial.AlphaCutoff,
+                    BaseColorFactor = unlitMaterial.BaseColorFactor,
+                    BaseColorMapUV = unlitMaterial.BaseColorMap.UV
+                };
+                _unlitArgumentsPool.UpdateBuffer(offset, ref args);
+            }
+            return _unlitTechnique.BindMaterial(offset, topology, indexCount, nodeUniformOffset,
+                vertexLayoutDescription);
         }
     }
 }

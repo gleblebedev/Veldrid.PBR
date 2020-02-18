@@ -1,30 +1,25 @@
-﻿using Veldrid.PBR.DataStructures;
-using Veldrid.PBR.Unlit;
+﻿using Veldrid.PBR.Unlit;
 
 namespace Veldrid.PBR
 {
     public class UnlitTechnique : ITechnique<UnlitMaterial, ImageBasedLightingPasses>
     {
-        private readonly IUniformPool<UnlitMaterialArguments> _uniformPool;
         private readonly UnlitShaderFactory _unlitShaderFactory;
         private readonly ImageBasedLighting _renderPipeline;
-        private uint _materialOffset;
 
-        public UnlitTechnique(IUniformPool<UnlitMaterialArguments> uniformPool, UnlitShaderFactory unlitShaderFactory,
+        public UnlitTechnique(UnlitShaderFactory unlitShaderFactory,
             ImageBasedLighting renderPipeline)
         {
-            _uniformPool = uniformPool;
             _unlitShaderFactory = unlitShaderFactory;
             _renderPipeline = renderPipeline;
         }
 
         public void Dispose()
         {
-            _uniformPool.Release(_materialOffset);
         }
 
         public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(
-            UnlitMaterial material,
+            uint materialOffset,
             PrimitiveTopology topology,
             uint indexCount, uint modelUniformOffset,
             VertexLayoutDescription vertexLayoutDescription)
@@ -49,8 +44,8 @@ namespace Veldrid.PBR
             description.ResourceLayouts = _renderPipeline.GetResourceLayouts(ImageBasedLightingPasses.Opaque);
             description.Outputs = _renderPipeline.OutputDescription;
             var pipeline = _renderPipeline.ResourceCache.GetPipeline(ref description);
-            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, _renderPipeline.ResourceSet,
-                modelUniformOffset, _materialOffset));
+            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, _renderPipeline.ModelViewProjectionResourceSet, _renderPipeline.UnlitMaterialResourceSet,
+                modelUniformOffset, materialOffset));
         }
     }
 }

@@ -20,7 +20,7 @@ struct MapUV
     int Set;
     vec3 Y;
 };
-layout (set=0, binding=2) uniform UnlitMaterialArguments
+layout (set=1, binding=0) uniform UnlitMaterialArguments
 {
     vec4 BaseColorFactor;
     float AlphaCutoff;
@@ -54,27 +54,27 @@ switch (numColorComponents)
 {
     case 0:
 #>
-    fsin_color = vec4(1,1,1,1);
+    fsin_color = BaseColorFactor*vec4(1,1,1,1);
 <#
         break;
     case 1:
 #>
-    fsin_color = vec4(COLOR_0,0,0,1);
+    fsin_color = BaseColorFactor*vec4(COLOR_0,0,0,1);
 <#
         break;
     case 2:
 #>
-    fsin_color = vec4(COLOR_0.x,COLOR_0.y,0,1);
+    fsin_color = BaseColorFactor*vec4(COLOR_0.x,COLOR_0.y,0,1);
 <#
         break;
     case 3:
 #>
-    fsin_color = vec4(COLOR_0.x,COLOR_0.y,COLOR_0.z,1);
+    fsin_color = BaseColorFactor*vec4(COLOR_0.x,COLOR_0.y,COLOR_0.z,1);
 <#
         break;
     case 4:
 #>
-    fsin_color = vec4(COLOR_0.x,COLOR_0.y,COLOR_0.z,COLOR_0.w);
+    fsin_color = BaseColorFactor*vec4(COLOR_0.x,COLOR_0.y,COLOR_0.z,COLOR_0.w);
 <#
         break;
 }
