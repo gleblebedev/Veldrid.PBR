@@ -24,7 +24,6 @@ namespace Veldrid.PBR
             uint indexCount, uint modelUniformOffset,
             VertexLayoutDescription vertexLayoutDescription)
         {
-            //_materialOffset = _uniformPool.Allocate();
             var shaders =
                 _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(UnlitShaderFlags.None,
                     vertexLayoutDescription));
@@ -44,8 +43,11 @@ namespace Veldrid.PBR
             description.ResourceLayouts = _renderPipeline.GetResourceLayouts(ImageBasedLightingPasses.Opaque);
             description.Outputs = _renderPipeline.OutputDescription;
             var pipeline = _renderPipeline.ResourceCache.GetPipeline(ref description);
-            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, _renderPipeline.ModelViewProjectionResourceSet, _renderPipeline.UnlitMaterialResourceSet,
-                modelUniformOffset, materialOffset));
+            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, 
+                _renderPipeline.ModelViewProjectionResourceSet, 
+                _renderPipeline.UnlitMaterialResourceSet,
+                modelUniformOffset, 
+                materialOffset));
         }
     }
 }

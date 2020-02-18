@@ -306,6 +306,8 @@ namespace Veldrid.PBR
 
                     primitiveData.BoundingBoxMin = bboxMin;
                     primitiveData.BoundingBoxMax = bboxMax;
+                    primitiveData.SphereCenter = (bboxMin + bboxMax) * 0.5f;
+                    primitiveData.SphereRadius = ((bboxMin - bboxMax) * 0.5f).Length(); 
                 }
                 var newIndices = new Dictionary<int, int>();
                 primitiveData.IndexBufferFormat =

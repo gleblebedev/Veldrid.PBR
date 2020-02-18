@@ -1,11 +1,11 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Veldrid.PBR
 {
     public class SimpleUniformPool<T> : UniformPoolBase, IUniformPool<T> where T : struct
     {
         public SimpleUniformPool(uint capacity, GraphicsDevice graphicsDevice) : base(graphicsDevice,
-            (uint) Marshal.SizeOf<T>(), capacity)
+            (uint)Unsafe.SizeOf<T>(), capacity)
         {
         }
 

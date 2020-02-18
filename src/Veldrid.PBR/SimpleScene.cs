@@ -55,11 +55,11 @@ namespace Veldrid.PBR
                 _disposables.Add(deviceBuffer);
             }
 
-            var unlitMaterials = new UnlitMaterial[_content.NumUnlitMaterials];
+            var unlitMaterials = new IMaterial[_content.NumUnlitMaterials];
             for (var index = 0; index < _content.NumUnlitMaterials; index++)
             {
                 var unlitMaterial = _content.CreateUnlitMaterial(index, _graphicsDevice, ResourceFactory);
-                unlitMaterials[index] = unlitMaterial;
+                unlitMaterials[index] = _renderPipeline.CreateMaterial(unlitMaterial);
             }
 
             _radius = 0.01f;
@@ -138,9 +138,9 @@ namespace Veldrid.PBR
             _cl.ClearDepthStencil(1.0f);
             _cl.ClearColorTarget(0, new RgbaFloat(0, 0.1f, 0.5f, 1));
 
-            var radius = _radius * 2;
+            var radius = _radius;
             var projection = Matrix4x4.CreatePerspectiveFieldOfView(3.14f * 0.5f,
-                _swapchain.Framebuffer.Width / (float) _swapchain.Framebuffer.Height, 0.1f, radius * 4.0f);
+                _swapchain.Framebuffer.Width / (float) _swapchain.Framebuffer.Height, radius*0.1f, radius * 4.0f);
             var from = new Vector3((float) Math.Cos(_angle), 1, (float) Math.Sin(_angle)) * radius;
             var view = Matrix4x4.CreateLookAt(from + _center, _center, Vector3.UnitY);
             _renderPipeline.UpdateViewProjection(_cl, ref projection, ref view);

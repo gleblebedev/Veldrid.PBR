@@ -14,7 +14,7 @@
             _graphicsDevice = graphicsDevice;
             _elementSize = elementSize;
             _alignment = graphicsDevice.UniformBufferMinOffsetAlignment;
-            _stride = _alignment * ((_elementSize + _alignment - 1) / _elementSize);
+            _stride = _alignment * ((_elementSize + _alignment - 1) / _alignment);
             DeviceBuffer = graphicsDevice.ResourceFactory.CreateBuffer(new BufferDescription(_stride * capacity,
                 BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             _bindableResource = new DeviceBufferRange(DeviceBuffer, 0, _stride);

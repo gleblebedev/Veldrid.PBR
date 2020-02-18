@@ -19,5 +19,7 @@ namespace Veldrid.PBR.BinaryData
         public int VertexBufferView;
         public Vector3 BoundingBoxMin;
         public Vector3 BoundingBoxMax;
+        public Vector3 SphereCenter;
+        public float SphereRadius;
     }
 }

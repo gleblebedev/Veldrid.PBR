@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Veldrid.PBR.DataStructures;
@@ -23,7 +22,6 @@ namespace Veldrid.PBR
         private readonly ResourceLayout[] _opaquePassResourceLayouts;
         private readonly DeviceBuffer _projViewBuffer;
 
-        private Dictionary<UnlitMaterial, uint> _unlitMaterialOffsets = new Dictionary<UnlitMaterial, uint>();
         private UnlitShaderFactory _unlitShaderFactory;
         private UnlitTechnique _unlitTechnique;
         private SimpleUniformPool<UnlitMaterialArguments> _unlitArgumentsPool;
@@ -84,28 +82,24 @@ namespace Veldrid.PBR
             throw new IndexOutOfRangeException();
         }
 
-        public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(UnlitMaterial unlitMaterial, 
+        public IMaterial CreateMaterial(UnlitMaterial unlitMaterial)
+        {
+            return new ImageBasedLightingUnlitMaterial(unlitMaterial, _unlitArgumentsPool, _graphicsDevice);
+        }
+
+        public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(IMaterial unlitMaterial, 
             PrimitiveTopology topology, 
             uint indexCount, 
             uint nodeUniformOffset, 
             VertexLayoutDescription vertexLayoutDescription)
         {
-            if (unlitMaterial == null)
-                return null;
-            if (!_unlitMaterialOffsets.TryGetValue(unlitMaterial, out var offset))
+            if (unlitMaterial is ImageBasedLightingUnlitMaterial imageBasedLightingUnlitMaterial)
             {
-                offset = _unlitArgumentsPool.Allocate();
-                _unlitMaterialOffsets.Add(unlitMaterial, offset);
-                UnlitMaterialArguments args = new UnlitMaterialArguments()
-                {
-                    AlphaCutoff = unlitMaterial.AlphaCutoff,
-                    BaseColorFactor = unlitMaterial.BaseColorFactor,
-                    BaseColorMapUV = unlitMaterial.BaseColorMap.UV
-                };
-                _unlitArgumentsPool.UpdateBuffer(offset, ref args);
+                return _unlitTechnique.BindMaterial(imageBasedLightingUnlitMaterial.UniformOffset, topology, indexCount,
+                    nodeUniformOffset,
+                    vertexLayoutDescription);
             }
-            return _unlitTechnique.BindMaterial(offset, topology, indexCount, nodeUniformOffset,
-                vertexLayoutDescription);
+            return null;
         }
     }
 }

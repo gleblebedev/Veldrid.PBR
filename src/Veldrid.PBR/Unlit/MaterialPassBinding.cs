@@ -25,7 +25,7 @@
         {
             commandList.SetPipeline(_pipeline);
             commandList.SetGraphicsResourceSet(0, _resourceSet, 1, ref _modelUniformOffset);
-            commandList.SetGraphicsResourceSet(1, _resourceSet2, 1, ref _modelUniformOffset);
+            commandList.SetGraphicsResourceSet(1, _resourceSet2, 1, ref _materialArgumentsOffset);
             commandList.DrawIndexed(_indexCount, 1, 0, 0, 0);
         }
     }
