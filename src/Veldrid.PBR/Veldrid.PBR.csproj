@@ -14,10 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="IBL\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="DataStructures.vert.glsl">
       <Generator>SPIRVReflection</Generator>
       <LastGenOutput>DataStructures.vert.cs</LastGenOutput>

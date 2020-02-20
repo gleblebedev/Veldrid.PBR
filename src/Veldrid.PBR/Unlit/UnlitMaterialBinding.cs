@@ -1,4 +1,6 @@
-﻿namespace Veldrid.PBR.Unlit
+﻿using Veldrid.PBR.ImageBasedLighting;
+
+namespace Veldrid.PBR.Unlit
 {
     public class UnlitMaterialBinding : IMaterialBinding<ImageBasedLightingPasses>
     {

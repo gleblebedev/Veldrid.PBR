@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Veldrid.PBR.BinaryData;
 using Veldrid.PBR.DataStructures;
-using Veldrid.PBR.Unlit;
+using Veldrid.PBR.ImageBasedLighting;
 
 namespace Veldrid.PBR
 {
@@ -17,12 +17,12 @@ namespace Veldrid.PBR
         private readonly CommandList _cl;
         private readonly List<IDisposable> _disposables;
         private readonly List<DeviceBuffer> _buffers;
-        private float _angle;
         private readonly SimpleNode[] _nodes;
-        private readonly ImageBasedLighting _renderPipeline;
+        private readonly RenderPipeline _renderPipeline;
         private readonly SimpleUniformPool<NodeProperties> _nodeProperties;
         private readonly float _radius;
         private readonly Vector3 _center;
+        private float _angle;
 
         public SimpleScene(GraphicsDevice graphicsDevice, Swapchain swapchain, ResourceCache resourceCache,
             PbrContent content)
@@ -41,7 +41,8 @@ namespace Veldrid.PBR
                 _disposables.Add(_nodeProperties);
             }
             {
-                _renderPipeline = new ImageBasedLighting(_graphicsDevice, _resourceCache, _swapchain.Framebuffer.OutputDescription,
+                _renderPipeline = new RenderPipeline(_graphicsDevice, _resourceCache,
+                    _swapchain.Framebuffer.OutputDescription,
                     _nodeProperties);
                 _disposables.Add(_renderPipeline);
             }
@@ -140,7 +141,7 @@ namespace Veldrid.PBR
 
             var radius = _radius;
             var projection = Matrix4x4.CreatePerspectiveFieldOfView(3.14f * 0.5f,
-                _swapchain.Framebuffer.Width / (float) _swapchain.Framebuffer.Height, radius*0.1f, radius * 4.0f);
+                _swapchain.Framebuffer.Width / (float) _swapchain.Framebuffer.Height, radius * 0.1f, radius * 4.0f);
             var from = new Vector3((float) Math.Cos(_angle), 1, (float) Math.Sin(_angle)) * radius;
             var view = Matrix4x4.CreateLookAt(from + _center, _center, Vector3.UnitY);
             _renderPipeline.UpdateViewProjection(_cl, ref projection, ref view);

@@ -28,8 +28,36 @@ namespace Veldrid.PBR.Unlit
         /// </summary>
         public virtual string TransformText()
         {
-            Write("#version 450\r\n\r\nlayout(location = 0) in vec4 fsin_color;\r\nlayout(location = 0) ou" +
-                  "t vec4 fsout_color;\r\n\r\nvoid main()\r\n{\r\n    fsout_color = fsin_color;\r\n}");
+            Write("#version 450\r\n\r\n");
+
+#line 8 "C:\github\Veldrid.PBR\src\Veldrid.PBR\Unlit\UnlitPixelShader.tt"
+
+            if (_key.HasFlag(UnlitShaderFlags.HasBaseColorMap)) Write("#define HAS_BASE_COLOR_MAP\r\n");
+
+
+#line default
+#line hidden
+            Write("\r\nstruct MapUV\r\n{\r\n    vec3 X;\r\n    int Set;\r\n    vec3 Y;\r\n};\r\n\r\nlayout (set=1, b" +
+                  "inding=0) uniform UnlitMaterialArguments\r\n{\r\n    vec4 BaseColorFactor;\r\n    floa" +
+                  "t AlphaCutoff;\r\n    MapUV BaseColorMapUV; \r\n};\r\n#ifdef HAS_BASE_COLOR_MAP\r\nlayou" +
+                  "t (set=1, binding=1) uniform texture2D BaseColorTexture;\r\nlayout (set=1, binding" +
+                  "=2) uniform sampler BaseColorSampler;\r\n#endif\r\n\r\nlayout(location = 0) in vec4 v_" +
+                  "Color0;\r\nlayout(location = 1) in vec2 v_UVCoord0;\r\nlayout(location = 2) in vec2 " +
+                  "v_UVCoord1;\r\n\r\nlayout(location = 0) out vec4 fsout_color;\r\n\r\nconst float GAMMA =" +
+                  " 2.2;\r\nconst float INV_GAMMA = 1.0 / GAMMA;\r\n\r\n// linear to sRGB approximation\r\n" +
+                  "// see http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html\r\n" +
+                  "vec3 LINEARtoSRGB(vec3 color)\r\n{\r\n    return pow(color, vec3(INV_GAMMA));\r\n}\r\n\r\n" +
+                  "// sRGB to linear approximation\r\n// see http://chilliant.blogspot.com/2012/08/sr" +
+                  "gb-approximations-for-hlsl.html\r\nvec4 SRGBtoLINEAR(vec4 srgbIn)\r\n{\r\n    return v" +
+                  "ec4(pow(srgbIn.xyz, vec3(GAMMA)), srgbIn.w);\r\n}\r\n\r\nvec2 getBaseColorUV()\r\n{\r\n   " +
+                  " vec3 uv = vec3(v_UVCoord0, 1.0);\r\n#ifdef HAS_BASE_COLOR_MAP\r\n    uv.xy = BaseCo" +
+                  "lorMapUV.Set < 1 ? v_UVCoord0 : v_UVCoord1;\r\n    uv *= mat3(BaseColorMapUV.X,Bas" +
+                  "eColorMapUV.Y,vec3(0,0,1));\r\n#endif\r\n    return uv.xy;\r\n}\r\n\r\nvoid main()\r\n{\r\n   " +
+                  " vec4 baseColor = v_Color0 * BaseColorFactor;\r\n\r\n    // The albedo may be define" +
+                  "d from a base texture or a flat color\r\n#ifdef HAS_BASE_COLOR_MAP\r\n    baseColor " +
+                  "= SRGBtoLINEAR(texture(sampler2D(BaseColorTexture, BaseColorSampler), getBaseCol" +
+                  "orUV())) * baseColor;\r\n#endif\r\n\r\n    fsout_color = vec4(LINEARtoSRGB(baseColor.r" +
+                  "gb), baseColor.a);\r\n}");
             return GenerationEnvironment.ToString();
         }
     }

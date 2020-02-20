@@ -1,31 +1,27 @@
-﻿using Veldrid.PBR.Unlit;
+﻿using Veldrid.PBR.ImageBasedLighting;
 
-namespace Veldrid.PBR
+namespace Veldrid.PBR.Unlit
 {
     public class UnlitTechnique : ITechnique<UnlitMaterial, ImageBasedLightingPasses>
     {
         private readonly UnlitShaderFactory _unlitShaderFactory;
-        private readonly ImageBasedLighting _renderPipeline;
+        private readonly RenderPipeline _renderPipeline;
 
         public UnlitTechnique(UnlitShaderFactory unlitShaderFactory,
-            ImageBasedLighting renderPipeline)
+            RenderPipeline renderPipeline)
         {
             _unlitShaderFactory = unlitShaderFactory;
             _renderPipeline = renderPipeline;
         }
 
-        public void Dispose()
-        {
-        }
-
         public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(
-            uint materialOffset,
+            ImageBasedLightingUnlitMaterial material,
             PrimitiveTopology topology,
             uint indexCount, uint modelUniformOffset,
             VertexLayoutDescription vertexLayoutDescription)
         {
             var shaders =
-                _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(UnlitShaderFlags.None,
+                _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(material.ShaderFlags,
                     vertexLayoutDescription));
             var description = new GraphicsPipelineDescription();
             description.BlendState = BlendStateDescription.SingleOverrideBlend;
@@ -40,14 +36,18 @@ namespace Veldrid.PBR
                 ScissorTestEnabled = false
             };
             description.ShaderSet = new ShaderSetDescription(new[] {vertexLayoutDescription}, shaders);
-            description.ResourceLayouts = _renderPipeline.GetResourceLayouts(ImageBasedLightingPasses.Opaque);
+            description.ResourceLayouts = new[]
+                {_renderPipeline.ModelViewProjectionResourceLayout, material.ResourceLayout};
             description.Outputs = _renderPipeline.OutputDescription;
             var pipeline = _renderPipeline.ResourceCache.GetPipeline(ref description);
-            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount, 
-                _renderPipeline.ModelViewProjectionResourceSet, 
-                _renderPipeline.UnlitMaterialResourceSet,
-                modelUniformOffset, 
-                materialOffset));
+
+            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount,
+                new ResourceSetAndOffsets(_renderPipeline.ModelViewProjectionResourceSet, modelUniformOffset),
+                material.ResourceSet));
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

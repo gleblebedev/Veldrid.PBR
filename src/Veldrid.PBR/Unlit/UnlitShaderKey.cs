@@ -40,5 +40,10 @@ namespace Veldrid.PBR.Unlit
         {
             return !left.Equals(right);
         }
+
+        public bool HasFlag(UnlitShaderFlags mask)
+        {
+            return mask == (Flags & mask);
+        }
     }
 }

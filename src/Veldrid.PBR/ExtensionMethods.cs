@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Veldrid.PBR.BinaryData;
 
 namespace Veldrid.PBR
@@ -8,6 +9,15 @@ namespace Veldrid.PBR
         public static Span<T> Slice<T>(this in Span<T> span, IndexRange range)
         {
             return span.Slice(range.StartIndex, range.Count);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SetGraphicsResourceSet(this CommandList commandList, uint slot,
+            ref ResourceSetAndOffsets resourceSet)
+        {
+            if (resourceSet.ResourceSet != null)
+                commandList.SetGraphicsResourceSet(slot, resourceSet.ResourceSet, resourceSet.OffsetCount,
+                    ref resourceSet.Offset0);
         }
 
         public static int GetNumComponents(this VertexElementFormat format)

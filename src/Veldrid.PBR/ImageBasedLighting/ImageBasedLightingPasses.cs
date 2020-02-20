@@ -1,4 +1,4 @@
-﻿namespace Veldrid.PBR
+﻿namespace Veldrid.PBR.ImageBasedLighting
 {
     /// <summary>
     ///     Render passes for PBR IBL.

@@ -4,7 +4,8 @@ namespace Veldrid.PBR
 {
     public interface ITechnique<TMaterial, TPass> : IDisposable
     {
-        IMaterialBinding<TPass> BindMaterial(uint materialOffset, PrimitiveTopology topology, uint indexCount,
-            uint modelUniformOffset, VertexLayoutDescription vertexLayoutDescription);
+        //IMaterialBinding<TPass> BindMaterial(ResourceLayout materialLayout,
+        //    in ResourceSetAndOffsets materialResourceSet, PrimitiveTopology topology, uint indexCount,
+        //    uint modelUniformOffset, VertexLayoutDescription vertexLayoutDescription);
     }
 }

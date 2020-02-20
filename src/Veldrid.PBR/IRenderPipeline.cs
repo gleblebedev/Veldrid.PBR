@@ -9,6 +9,5 @@ namespace Veldrid.PBR
 
     public interface IRenderPipeline<T> : IRenderPipeline
     {
-        ResourceLayout[] GetResourceLayouts(T pass);
     }
 }
