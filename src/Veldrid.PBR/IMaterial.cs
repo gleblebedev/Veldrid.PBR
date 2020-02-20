@@ -2,7 +2,7 @@
 
 namespace Veldrid.PBR
 {
-    public interface IMaterial:IDisposable
+    public interface IMaterial : IDisposable
     {
         void Update();
     }

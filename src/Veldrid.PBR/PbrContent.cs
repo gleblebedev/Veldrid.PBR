@@ -16,10 +16,10 @@ namespace Veldrid.PBR
             Encoding.ASCII.GetBytes("VELDRIDPBR" + (BitConverter.IsLittleEndian ? "LE" : "BE"));
 
         private readonly Memory<byte> _data;
-        private Chunks _chunks;
         private readonly Sampler[] _samplers;
         private readonly Texture[] _textures;
         private readonly TextureView[] _textureViews;
+        private Chunks _chunks;
 
         public PbrContent(Memory<byte> data)
         {

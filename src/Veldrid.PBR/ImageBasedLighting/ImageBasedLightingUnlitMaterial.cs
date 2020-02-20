@@ -31,7 +31,7 @@ namespace Veldrid.PBR.ImageBasedLighting
                         ShaderStages.Fragment, ResourceLayoutElementOptions.None)
                 );
                 ResourceLayout = resourceCache.GetResourceLayout(resourceLayoutDescription);
-                ResourceSet = new ResourceSetAndOffsets(resourceCache.GetResourceSet(new ResourceSetDescription(
+                ResourceSet = new ResourceSetAndOffsets(graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(
                     ResourceLayout,
                     uniformPool.BindableResource,
                     material.BaseColorMap.Map,
@@ -44,7 +44,7 @@ namespace Veldrid.PBR.ImageBasedLighting
                         ShaderStages.Vertex | ShaderStages.Fragment, ResourceLayoutElementOptions.DynamicBinding)
                 );
                 ResourceLayout = resourceCache.GetResourceLayout(resourceLayoutDescription);
-                ResourceSet = new ResourceSetAndOffsets(resourceCache.GetResourceSet(new ResourceSetDescription(
+                ResourceSet = new ResourceSetAndOffsets(graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(
                     ResourceLayout,
                     uniformPool.BindableResource)), _offset);
             }
@@ -60,6 +60,7 @@ namespace Veldrid.PBR.ImageBasedLighting
 
         public void Dispose()
         {
+            ResourceSet.ResourceSet?.Dispose();
             _uniformPool.Release(_offset);
         }
 

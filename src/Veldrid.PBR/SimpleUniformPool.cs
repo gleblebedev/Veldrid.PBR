@@ -5,7 +5,7 @@ namespace Veldrid.PBR
     public class SimpleUniformPool<T> : UniformPoolBase, IUniformPool<T> where T : struct
     {
         public SimpleUniformPool(uint capacity, GraphicsDevice graphicsDevice) : base(graphicsDevice,
-            (uint)Unsafe.SizeOf<T>(), capacity)
+            (uint) Unsafe.SizeOf<T>(), capacity)
         {
         }
 

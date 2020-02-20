@@ -6,8 +6,8 @@
         private readonly uint _elementSize;
         private readonly uint _alignment;
         private readonly uint _stride;
-        private BitMask _availabilityMask;
         private readonly DeviceBufferRange _bindableResource;
+        private BitMask _availabilityMask;
 
         public UniformPoolBase(GraphicsDevice graphicsDevice, uint elementSize, uint capacity)
         {
