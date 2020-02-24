@@ -1,4 +1,5 @@
-﻿using Veldrid.PBR.ImageBasedLighting;
+﻿using System.Text.RegularExpressions;
+using Veldrid.PBR.ImageBasedLighting;
 
 namespace Veldrid.PBR.Unlit
 {
@@ -16,17 +17,15 @@ namespace Veldrid.PBR.Unlit
 
         public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(
             ImageBasedLightingUnlitMaterial material,
-            PrimitiveTopology topology,
-            uint indexCount, uint modelUniformOffset,
-            VertexLayoutDescription vertexLayoutDescription)
+            ref PrimitiveDrawCall drawCall)
         {
             var shaders =
                 _unlitShaderFactory.GetOrCreateShaders(new UnlitShaderKey(material.ShaderFlags,
-                    vertexLayoutDescription));
+                    drawCall.VertexLayoutDescription));
             var description = new GraphicsPipelineDescription();
             description.BlendState = BlendStateDescription.SingleOverrideBlend;
             description.DepthStencilState = DepthStencilStateDescription.DepthOnlyLessEqual;
-            description.PrimitiveTopology = topology;
+            description.PrimitiveTopology = drawCall.Topology;
             description.RasterizerState = new RasterizerStateDescription
             {
                 CullMode = FaceCullMode.None,
@@ -35,14 +34,14 @@ namespace Veldrid.PBR.Unlit
                 DepthClipEnabled = true,
                 ScissorTestEnabled = false
             };
-            description.ShaderSet = new ShaderSetDescription(new[] {vertexLayoutDescription}, shaders);
+            description.ShaderSet = new ShaderSetDescription(new[] {drawCall.VertexLayoutDescription}, shaders);
             description.ResourceLayouts = new[]
                 {_renderPipeline.ModelViewProjectionResourceLayout, material.ResourceLayout};
             description.Outputs = _renderPipeline.OutputDescription;
             var pipeline = _renderPipeline.ResourceCache.GetPipeline(ref description);
 
-            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, indexCount,
-                new ResourceSetAndOffsets(_renderPipeline.ModelViewProjectionResourceSet, modelUniformOffset),
+            return new UnlitMaterialBinding(new MaterialPassBinding(pipeline, ref drawCall,
+                new ResourceSetAndOffsets(_renderPipeline.ModelViewProjectionResourceSet, drawCall.ModelUniformOffset),
                 material.ResourceSet));
         }
 

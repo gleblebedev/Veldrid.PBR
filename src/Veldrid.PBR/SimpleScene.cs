@@ -100,18 +100,25 @@ namespace Veldrid.PBR
 
                         var materialReference =
                             _content.GetMaterialReference(nodeData.MaterialBindings[primitiveIndex]);
-                        var vertexLayoutDescription =
-                            _content.GetVertexLayoutDescription(_content.GetVertexBufferView(primitive.VertexBufferView)
-                                .Elements);
+                        ref var vertexBufferViewData = ref _content.GetVertexBufferView(primitive.VertexBufferView);
+                        var vertexLayoutDescription = _content.GetVertexLayoutDescription(vertexBufferViewData.Elements);
+                        var drawCall = new PrimitiveDrawCall()
+                        {
+                            IndexBuffer = _buffers[primitive.IndexBuffer],
+                            VertexBuffer = _buffers[vertexBufferViewData.Buffer],
+                            Topology = primitive.PrimitiveTopology,
+                            VertexLayoutDescription = vertexLayoutDescription,
+                            IndexBufferOffset = primitive.IndexBufferOffset,
+                            IndexBufferFormat = primitive.IndexBufferFormat,
+                            IndexCount = primitive.IndexCount,
+                            VertexBufferOffset = vertexBufferViewData.Offset,
+                            ModelUniformOffset = simpleNode.ModelUniformOffset
+                        };
                         switch (materialReference.MaterialType)
                         {
                             case MaterialType.Unlit:
-                                bindings[primitiveIndex] = _renderPipeline.BindMaterial(
-                                    unlitMaterials[materialReference.Material], primitive.PrimitiveTopology,
-                                    primitive.IndexCount, simpleNode.ModelUniformOffset, vertexLayoutDescription);
-                                //bindings[primitiveIndex] = _unlitTechnique.BindMaterial(
-                                //    unlitMaterials[materialReference.Material], primitive.PrimitiveTopology,
-                                //    primitive.IndexCount, simpleNode.ModelUniformOffset, vertexLayoutDescription);
+                                
+                                bindings[primitiveIndex] = _renderPipeline.BindMaterial(unlitMaterials[materialReference.Material], ref drawCall);
                                 break;
                             default:
                                 throw new NotImplementedException();
@@ -160,17 +167,7 @@ namespace Veldrid.PBR
                         var passBinding = materialBinding[ImageBasedLightingPasses.Opaque];
                         if (passBinding != null)
                         {
-                            ref var mesh = ref _content.GetMesh(simpleNode.MeshIndex);
-
-                            foreach (var primitiveIndex in mesh.Primitives)
-                            {
-                                ref var primitive = ref _content.GetPrimitive(primitiveIndex);
-                                var vbView = _content.GetVertexBufferView(primitive.VertexBufferView);
-                                _cl.SetVertexBuffer(0, _buffers[vbView.Buffer], vbView.Offset);
-                                _cl.SetIndexBuffer(_buffers[primitive.IndexBuffer], primitive.IndexBufferFormat,
-                                    primitive.IndexBufferOffset);
-                                passBinding.Draw(_cl);
-                            }
+                            passBinding.Draw(_cl);
                         }
                     }
                 }

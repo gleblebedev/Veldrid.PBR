@@ -37,6 +37,11 @@ namespace Veldrid.PBR.Unlit
                 case VertexElementFormat.Short4_Norm:
                 case VertexElementFormat.UShort4_Norm:
                     return "vec4";
+                case VertexElementFormat.Byte4:
+                case VertexElementFormat.SByte4:
+                case VertexElementFormat.Short4:
+                case VertexElementFormat.UShort4:
+                    return "ivec4";
                 default:
                     throw new NotImplementedException(format + " is not implemented yet.", null);
             }

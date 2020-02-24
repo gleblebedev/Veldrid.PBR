@@ -59,16 +59,10 @@ namespace Veldrid.PBR.ImageBasedLighting
             commandList.UpdateBuffer(_projViewBuffer, 0, ref data);
         }
 
-        public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(IMaterial unlitMaterial,
-            PrimitiveTopology topology,
-            uint indexCount,
-            uint nodeUniformOffset,
-            VertexLayoutDescription vertexLayoutDescription)
+        public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(IMaterial unlitMaterial, ref PrimitiveDrawCall drawCall)
         {
             if (unlitMaterial is ImageBasedLightingUnlitMaterial imageBasedLightingUnlitMaterial)
-                return _unlitTechnique.BindMaterial(imageBasedLightingUnlitMaterial, topology, indexCount,
-                    nodeUniformOffset,
-                    vertexLayoutDescription);
+                return _unlitTechnique.BindMaterial(imageBasedLightingUnlitMaterial, ref drawCall);
             return null;
         }
 
