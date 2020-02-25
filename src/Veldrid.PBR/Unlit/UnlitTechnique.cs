@@ -28,7 +28,7 @@ namespace Veldrid.PBR.Unlit
             description.PrimitiveTopology = drawCall.Topology;
             description.RasterizerState = new RasterizerStateDescription
             {
-                CullMode = FaceCullMode.None,
+                CullMode = material.CullMode,
                 FillMode = PolygonFillMode.Solid,
                 FrontFace = FrontFace.Clockwise,
                 DepthClipEnabled = true,

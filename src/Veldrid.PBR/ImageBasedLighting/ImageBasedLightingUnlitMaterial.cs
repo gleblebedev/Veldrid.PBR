@@ -57,6 +57,7 @@ namespace Veldrid.PBR.ImageBasedLighting
         public ResourceSetAndOffsets ResourceSet { get; }
 
         public UnlitShaderFlags ShaderFlags { get; }
+        public FaceCullMode CullMode => _material.FaceCullMode;
 
         public void Dispose()
         {

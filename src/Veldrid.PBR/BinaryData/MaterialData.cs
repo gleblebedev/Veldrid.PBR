@@ -8,11 +8,13 @@ namespace Veldrid.PBR.BinaryData
         {
             BaseColorFactor = Vector4.One,
             AlphaMode = AlphaMode.Opaque,
-            AlphaCutoff = 1.0f
+            AlphaCutoff = 1.0f,
+            FaceCullMode = FaceCullMode.Back
         };
 
         public Vector4 BaseColorFactor;
         public AlphaMode AlphaMode;
         public float AlphaCutoff;
+        public FaceCullMode FaceCullMode;
     }
 }

@@ -172,7 +172,8 @@ namespace Veldrid.PBR
             {
                 AlphaMode = GetAlphaMode(material.Alpha),
                 AlphaCutoff = material.AlphaCutoff,
-                BaseColorFactor = Vector4.One
+                BaseColorFactor = Vector4.One,
+                FaceCullMode = material.DoubleSided ? FaceCullMode.None : FaceCullMode.Back
             };
             var baseColor = material.FindChannel(KnownChannels.BaseColor) ?? material.FindChannel(KnownChannels.Diffuse);
             if (baseColor != null)
@@ -440,9 +441,9 @@ namespace Veldrid.PBR
         {
             foreach (var valueTuple in primitive.GetTriangleIndices())
             {
-                yield return valueTuple.A;
-                yield return valueTuple.B;
                 yield return valueTuple.C;
+                yield return valueTuple.B;
+                yield return valueTuple.A;
             }
         }
 

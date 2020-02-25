@@ -153,6 +153,7 @@ namespace Veldrid.PBR
                 AlphaMode = unlitMaterialData.Base.AlphaMode,
                 AlphaCutoff = unlitMaterialData.Base.AlphaCutoff,
                 BaseColorFactor = unlitMaterialData.Base.BaseColorFactor,
+                FaceCullMode = unlitMaterialData.Base.FaceCullMode,
                 BaseColorMap = new MapParameters
                 {
                     Sampler = GetOrCreateSampler(unlitMaterialData.BaseColorSampler, graphicsDevice, resourceFactory),

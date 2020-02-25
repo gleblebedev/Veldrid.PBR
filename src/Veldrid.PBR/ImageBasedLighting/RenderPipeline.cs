@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Veldrid.PBR.DataStructures;
 using Veldrid.PBR.Unlit;
