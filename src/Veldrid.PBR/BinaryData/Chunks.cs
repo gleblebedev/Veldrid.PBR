@@ -10,6 +10,8 @@
         public Chunk<VertexElementData> VertexElements;
         public Chunk<VertexBufferViewData> BufferViews;
         public Chunk<UnlitMaterialData> UnlitMaterials;
+        public Chunk<MetallicRoughnessMaterialData> MetallicRoughnessMaterials;
+        public Chunk<SpecularGlossinessMaterialData> SpecularGlossinessMaterials;
         public Chunk<MaterialReference> MaterialBindings;
         public Chunk<PrimitiveData> Primitives;
         public Chunk<MeshData> Meshes;

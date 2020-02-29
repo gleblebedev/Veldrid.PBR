@@ -7,7 +7,7 @@ using System.Numerics;
 using SharpGLTF.Schema2;
 using SharpGLTF.Validation;
 using Veldrid.PBR.BinaryData;
-using Veldrid.PBR.DataStructures;
+using Veldrid.PBR.Uniforms;
 
 namespace Veldrid.PBR
 {
@@ -20,16 +20,10 @@ namespace Veldrid.PBR
         private readonly ModelRoot _modelRoot;
         private readonly BinaryWriter _vertexWriter;
         private readonly ContentToWrite _content;
-        private int _defaultMaterial = -1;
+        private MaterialReference _defaultMaterial = new MaterialReference();
         private Dictionary<ComparableList<VertexElementData>, IndexRange> _elements = new Dictionary<ComparableList<VertexElementData>, IndexRange>();
 
-        struct MaterialRef
-        {
-            public int Index;
-            public MaterialType Type;
-        }
-
-        private List<MaterialRef> _materials;
+        private List<MaterialReference> _materials;
 
         internal GltfConverter(ModelRoot modelRoot)
         {
@@ -69,10 +63,33 @@ namespace Veldrid.PBR
             {
                 ConvertSampler(sampler);
             }
-            _materials = new List<MaterialRef>(_modelRoot.LogicalMaterials.Count);
+            _materials = new List<MaterialReference>(_modelRoot.LogicalMaterials.Count);
             foreach (var material in _modelRoot.LogicalMaterials)
             {
-                _materials.Add(CreateUnlitMaterial(material));
+                if (material.Unlit)
+                {
+                    _materials.Add(CreateUnlitMaterial(material));
+                }
+                else 
+                {
+                    var hasBaseColor = material.FindChannel(KnownChannels.BaseColor) != null;
+                    var hasMetallicRoughness = material.FindChannel(KnownChannels.MetallicRoughness) != null;
+                    var hasDiffuse = material.FindChannel(KnownChannels.Diffuse) != null;
+                    var hasSpecularGlossiness = material.FindChannel(KnownChannels.SpecularGlossiness) != null;
+
+                    if (hasDiffuse || hasSpecularGlossiness)
+                    {
+                        _materials.Add(CreateSpecularGlossinessMaterial(material));
+                    }
+                    else if (hasBaseColor || hasMetallicRoughness)
+                    {
+                        _materials.Add(CreateMetallicRoughnessMaterial(material));
+                    }
+                    else
+                    {
+                        _materials.Add(CreateUnlitMaterial(material));
+                    }
+                }
             }
             foreach (var mesh in _modelRoot.LogicalMeshes) ConvertMesh(mesh, skinPerMesh[mesh.LogicalIndex]);
             _content.Buffers.Add(new BufferData(_content.AddBlob(_vertexBuffer), BufferUsage.VertexBuffer));
@@ -124,25 +141,116 @@ namespace Veldrid.PBR
             return SamplerFilter.Anisotropic;
         }
 
-        private MaterialRef CreateUnlitMaterial(Material material)
+        private MaterialReference CreateMetallicRoughnessMaterial(Material gltfMaterial)
         {
-            var unlitMaterial = UnlitMaterialData.Default;
-            unlitMaterial.Base = CreateMaterialBase(material);
-            var baseColor = material.FindChannel(KnownChannels.BaseColor) ?? material.FindChannel(KnownChannels.Diffuse);
+            var material = MetallicRoughnessMaterialData.Default;
+            material.AlphaMode = GetAlphaMode(gltfMaterial.Alpha);
+            material.UniformArguments.AlphaCutoff = gltfMaterial.AlphaCutoff;
+            material.FaceCullMode = gltfMaterial.DoubleSided ? FaceCullMode.None : FaceCullMode.Back;
+            var baseColor = gltfMaterial.FindChannel(KnownChannels.BaseColor);
             if (baseColor != null)
             {
-                var channel = baseColor.Value;
-                unlitMaterial.Base.BaseColorFactor = channel.Parameter;
-                if (channel.Texture != null)
-                    unlitMaterial.BaseColorMap = channel.Texture.LogicalIndex;
-                unlitMaterial.BaseColorMapUV = GetUV(channel.TextureCoordinate, channel.TextureTransform);
-                if (channel.TextureSampler != null)
-                    unlitMaterial.BaseColorSampler = channel.TextureSampler.LogicalIndex;
+                (material.UniformArguments.BaseColorFactor, material.UniformArguments.BaseColorMapUV, material.BaseColor) = GetFactorAndMap(baseColor.Value);
             }
- 
-            var res = new MaterialRef() {Index = _content.UnlitMaterials.Count, Type = MaterialType.Unlit};
-            _content.UnlitMaterials.Add(unlitMaterial);
+            var metallicRoughness = gltfMaterial.FindChannel(KnownChannels.MetallicRoughness);
+            if (metallicRoughness != null)
+            {
+                Vector4 metallicRoughnessFactor;
+                (metallicRoughnessFactor, material.UniformArguments.MetallicRoughnessUV, material.MetallicRoughness) = GetFactorAndMap(metallicRoughness.Value);
+                material.UniformArguments.MetallicFactor = metallicRoughnessFactor.X;
+                material.UniformArguments.RoughnessFactor = metallicRoughnessFactor.Y;
+            }
+            var normal = gltfMaterial.FindChannel(KnownChannels.Normal);
+            if (normal != null)
+            {
+                (_, material.UniformArguments.NormalUV, material.Normal) = GetFactorAndMap(normal.Value);
+            }
+            var emissive = gltfMaterial.FindChannel(KnownChannels.Emissive);
+            if (emissive != null)
+            {
+                (_, material.UniformArguments.EmissiveUV, material.Emissive) = GetFactorAndMap(emissive.Value);
+            }
+            var occlusion = gltfMaterial.FindChannel(KnownChannels.Occlusion);
+            if (occlusion != null)
+            {
+                (_, material.UniformArguments.OcclusionUV, material.Occlusion) = GetFactorAndMap(occlusion.Value);
+            }
+
+            var res = new MaterialReference(MaterialType.MetallicRoughness,_content.UnlitMaterials.Count);
+            _content.MetallicRoughnessMaterials.Add(material);
             return res;
+        }
+
+        private MaterialReference CreateSpecularGlossinessMaterial(Material gltfMaterial)
+        {
+            var material = SpecularGlossinessMaterialData.Default;
+            material.AlphaMode = GetAlphaMode(gltfMaterial.Alpha);
+            material.UniformArguments.AlphaCutoff = gltfMaterial.AlphaCutoff;
+            material.FaceCullMode = gltfMaterial.DoubleSided ? FaceCullMode.None : FaceCullMode.Back;
+            var diffuse = gltfMaterial.FindChannel(KnownChannels.Diffuse);
+            if (diffuse != null)
+            {
+                (material.UniformArguments.DiffuseFactor, material.UniformArguments.DiffuseMapUV, material.Diffuse) = GetFactorAndMap(diffuse.Value);
+            }
+            var specularGlossiness = gltfMaterial.FindChannel(KnownChannels.SpecularGlossiness);
+            if (specularGlossiness != null)
+            {
+                Vector4 specularFactor;
+                (specularFactor, material.UniformArguments.SpecularGlossinessUV, material.SpecularGlossiness) = GetFactorAndMap(specularGlossiness.Value);
+                material.UniformArguments.SpecularFactor = new Vector3(specularFactor.X, specularFactor.Y, specularFactor.Z);
+                material.UniformArguments.GlossinessFactor = specularFactor.W;
+            }
+            var normal = gltfMaterial.FindChannel(KnownChannels.Normal);
+            if (normal != null)
+            {
+                (_ ,material.UniformArguments.NormalUV, material.Normal) = GetFactorAndMap(normal.Value);
+            }
+            var emissive = gltfMaterial.FindChannel(KnownChannels.Emissive);
+            if (emissive != null)
+            {
+                (_, material.UniformArguments.EmissiveUV, material.Emissive) = GetFactorAndMap(emissive.Value);
+            }
+            var occlusion = gltfMaterial.FindChannel(KnownChannels.Occlusion);
+            if (occlusion != null)
+            {
+                (_, material.UniformArguments.OcclusionUV, material.Occlusion) = GetFactorAndMap(occlusion.Value);
+            }
+
+            var res = new MaterialReference(MaterialType.SpecularGlossiness, _content.UnlitMaterials.Count);
+            _content.SpecularGlossinessMaterials.Add(material);
+            return res;
+        }
+
+        private MaterialReference CreateUnlitMaterial(Material gltfMaterial)
+        {
+            var material = UnlitMaterialData.Default;
+            material.AlphaMode = GetAlphaMode(gltfMaterial.Alpha);
+            material.UniformArguments.AlphaCutoff = gltfMaterial.AlphaCutoff;
+            material.FaceCullMode = gltfMaterial.DoubleSided ? FaceCullMode.None : FaceCullMode.Back;
+            var baseColor = gltfMaterial.FindChannel(KnownChannels.BaseColor) ?? gltfMaterial.FindChannel(KnownChannels.Diffuse);
+            if (baseColor != null)
+            {
+                (material.UniformArguments.BaseColorFactor, material.UniformArguments.BaseColorMapUV, material.BaseColor) = GetFactorAndMap(baseColor.Value);
+            }
+
+            var res = new MaterialReference(MaterialType.Unlit, _content.UnlitMaterials.Count);
+            _content.UnlitMaterials.Add(material);
+            return res;
+        }
+        private (Vector4 Parameter, MapUV, MapAndSampler) GetFactorAndMap(MaterialChannel channel)
+        {
+            return (channel.Parameter, GetUV(channel.TextureCoordinate, channel.TextureTransform), CreateMapAndSampler(channel));
+        }
+
+        private MapAndSampler CreateMapAndSampler(MaterialChannel channel)
+        {
+            var result = new MapAndSampler();
+            if (channel.Texture != null)
+                result.Map = new IdRef<TextureData>(channel.Texture.LogicalIndex);
+            if (channel.TextureSampler != null)
+                result.Sampler = new IdRef<SamplerData>(channel.TextureSampler.LogicalIndex);
+            return result;
+
         }
 
         private MapUV GetUV(int uvSet, TextureTransform transform)
@@ -165,23 +273,6 @@ namespace Veldrid.PBR
             return res;
         }
 
-
-        private MaterialDataBase CreateMaterialBase(Material material)
-        {
-            var materialBase = new MaterialDataBase()
-            {
-                AlphaMode = GetAlphaMode(material.Alpha),
-                AlphaCutoff = material.AlphaCutoff,
-                BaseColorFactor = Vector4.One,
-                FaceCullMode = material.DoubleSided ? FaceCullMode.None : FaceCullMode.Back
-            };
-            var baseColor = material.FindChannel(KnownChannels.BaseColor) ?? material.FindChannel(KnownChannels.Diffuse);
-            if (baseColor != null)
-            {
-                materialBase.BaseColorFactor = baseColor.Value.Parameter;
-            }
-            return materialBase;
-        }
 
         public static class KnownChannels
         {
@@ -229,18 +320,19 @@ namespace Veldrid.PBR
                 nodeData.MaterialBindings = new IndexRange(_content.MaterialBindings.Count, logicalNode.Mesh.Primitives.Count);
                 foreach (var primitive in logicalNode.Mesh.Primitives)
                 {
+                    var materialType = MaterialType.Unlit;
                     if (primitive.Material == null)
                     {
-                        if (_defaultMaterial < 0)
+                        if (!_defaultMaterial.Material.HasValue)
                         {
-                            _defaultMaterial = _content.UnlitMaterials.Count;
+                            _defaultMaterial = new MaterialReference(MaterialType.Unlit, _content.UnlitMaterials.Count);
                             _content.UnlitMaterials.Add(UnlitMaterialData.Default);
                         }
-                        _content.MaterialBindings.Add(new MaterialReference(MaterialType.Unlit, _defaultMaterial));
+                        _content.MaterialBindings.Add(_defaultMaterial);
                     }
                     else
                     {
-                        _content.MaterialBindings.Add(new MaterialReference(MaterialType.Unlit, primitive.Material.LogicalIndex));
+                        _content.MaterialBindings.Add(_materials[primitive.Material.LogicalIndex]);
                     }
                 }
             }

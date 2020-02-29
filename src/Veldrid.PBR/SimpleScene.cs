@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Veldrid.PBR.BinaryData;
-using Veldrid.PBR.DataStructures;
+using Veldrid.PBR.Uniforms;
 using Veldrid.PBR.ImageBasedLighting;
 
 namespace Veldrid.PBR
@@ -59,8 +59,19 @@ namespace Veldrid.PBR
             var unlitMaterials = new IMaterial[_content.NumUnlitMaterials];
             for (var index = 0; index < _content.NumUnlitMaterials; index++)
             {
-                var unlitMaterial = _content.CreateUnlitMaterial(index, _graphicsDevice, ResourceFactory);
-                unlitMaterials[index] = _renderPipeline.CreateMaterial(unlitMaterial);
+                unlitMaterials[index] = _renderPipeline.CreateMaterial(_content.CreateUnlitMaterial(index, _graphicsDevice, ResourceFactory));
+            }
+
+            var metallicRoughnessMaterials = new IMaterial[_content.NumMetallicRoughnessMaterials];
+            for (var index = 0; index < _content.NumMetallicRoughnessMaterials; index++)
+            {
+                metallicRoughnessMaterials[index] = _renderPipeline.CreateMaterial(_content.CreateMetallicRoughnessMaterial(index, _graphicsDevice, ResourceFactory));
+            }
+
+            var specularGlossinessMaterials = new IMaterial[_content.NumSpecularGlossinessMaterials];
+            for (var index = 0; index < _content.NumSpecularGlossinessMaterials; index++)
+            {
+                specularGlossinessMaterials[index] = _renderPipeline.CreateMaterial(_content.CreateSpecularGlossinessMaterial(index, _graphicsDevice, ResourceFactory));
             }
 
             _radius = 0.01f;
@@ -117,8 +128,10 @@ namespace Veldrid.PBR
                         switch (materialReference.MaterialType)
                         {
                             case MaterialType.Unlit:
-                                
-                                bindings[primitiveIndex] = _renderPipeline.BindMaterial(unlitMaterials[materialReference.Material], ref drawCall);
+                                bindings[primitiveIndex] = _renderPipeline.BindMaterial(unlitMaterials[materialReference.Material.Value], ref drawCall);
+                                break;
+                            case MaterialType.MetallicRoughness:
+                                bindings[primitiveIndex] = _renderPipeline.BindMaterial(metallicRoughnessMaterials[materialReference.Material.Value], ref drawCall);
                                 break;
                             default:
                                 throw new NotImplementedException();

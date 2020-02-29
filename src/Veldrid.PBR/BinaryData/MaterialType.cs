@@ -2,6 +2,8 @@
 {
     public enum MaterialType
     {
-        Unlit
+        Unlit,
+        MetallicRoughness,
+        SpecularGlossiness,
     }
 }

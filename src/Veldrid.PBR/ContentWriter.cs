@@ -103,6 +103,14 @@ namespace Veldrid.PBR
             lumps.UnlitMaterials.Count = content.UnlitMaterials.Count;
             Write(content.UnlitMaterials);
 
+            lumps.MetallicRoughnessMaterials.Offset = Position;
+            lumps.MetallicRoughnessMaterials.Count = content.MetallicRoughnessMaterials.Count;
+            Write(content.MetallicRoughnessMaterials);
+
+            lumps.SpecularGlossinessMaterials.Offset = Position;
+            lumps.SpecularGlossinessMaterials.Count = content.SpecularGlossinessMaterials.Count;
+            Write(content.SpecularGlossinessMaterials);
+
             lumps.MaterialBindings.Offset = Position;
             lumps.MaterialBindings.Count = content.MaterialBindings.Count;
             Write(content.MaterialBindings);

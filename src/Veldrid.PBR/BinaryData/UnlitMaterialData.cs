@@ -1,20 +1,19 @@
-﻿using Veldrid.PBR.DataStructures;
+﻿using Veldrid.PBR.Uniforms;
 
 namespace Veldrid.PBR.BinaryData
 {
     public struct UnlitMaterialData
     {
-        public static readonly UnlitMaterialData Default = new UnlitMaterialData
-        {
-            BaseColorMap = -1,
-            BaseColorSampler = -1,
-            BaseColorMapUV = MapUV.Default,
-            Base = MaterialDataBase.Default
-        };
+        public AlphaMode AlphaMode;
+        public FaceCullMode FaceCullMode;
+        public MapAndSampler BaseColor;
+        public UnlitMaterialArguments UniformArguments;
 
-        public MaterialDataBase Base;
-        public MapUV BaseColorMapUV;
-        public int BaseColorMap;
-        public int BaseColorSampler;
+        public static readonly UnlitMaterialData Default = new UnlitMaterialData()
+        {
+            AlphaMode = AlphaMode.Opaque,
+            FaceCullMode = FaceCullMode.Back,
+            UniformArguments = UnlitMaterialArguments.Default
+        };
     }
 }

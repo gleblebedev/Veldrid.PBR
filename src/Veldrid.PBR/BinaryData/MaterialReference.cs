@@ -5,13 +5,13 @@ namespace Veldrid.PBR.BinaryData
     [StructLayout(LayoutKind.Sequential)]
     public struct MaterialReference
     {
+        public IdRef Material;
         public MaterialType MaterialType;
-        public int Material;
 
         public MaterialReference(MaterialType materialType, int materialIndex)
         {
+            Material = new IdRef(materialIndex);
             MaterialType = materialType;
-            Material = materialIndex;
         }
     }
 }

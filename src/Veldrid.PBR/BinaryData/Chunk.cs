@@ -14,5 +14,11 @@ namespace Veldrid.PBR.BinaryData
         {
             return ref MemoryMarshal.Cast<TMemory, T>(data.Span.Slice(Offset))[index];
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T GetAt<TMemory>(in Memory<TMemory> data, uint index) where TMemory : struct
+        {
+            return ref MemoryMarshal.Cast<TMemory, T>(data.Span.Slice(Offset))[(int)index];
+        }
     }
 }

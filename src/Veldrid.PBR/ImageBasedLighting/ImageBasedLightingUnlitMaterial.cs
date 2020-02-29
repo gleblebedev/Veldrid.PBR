@@ -1,4 +1,4 @@
-﻿using Veldrid.PBR.DataStructures;
+﻿using Veldrid.PBR.Uniforms;
 using Veldrid.PBR.Unlit;
 
 namespace Veldrid.PBR.ImageBasedLighting
@@ -31,7 +31,7 @@ namespace Veldrid.PBR.ImageBasedLighting
                         ShaderStages.Fragment, ResourceLayoutElementOptions.None)
                 );
                 ResourceLayout = resourceCache.GetResourceLayout(resourceLayoutDescription);
-                ResourceSet = new ResourceSetAndOffsets(graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(
+                ResourceSet = new ResourceSetAndOffsets(resourceCache.GetResourceSet(new ResourceSetDescription(
                     ResourceLayout,
                     uniformPool.BindableResource,
                     material.BaseColorMap.Map,
@@ -61,7 +61,8 @@ namespace Veldrid.PBR.ImageBasedLighting
 
         public void Dispose()
         {
-            ResourceSet.ResourceSet?.Dispose();
+            //If resource set aquired via cache there is no need to dispose it.
+            //ResourceSet.ResourceSet?.Dispose();
             _uniformPool.Release(_offset);
         }
 

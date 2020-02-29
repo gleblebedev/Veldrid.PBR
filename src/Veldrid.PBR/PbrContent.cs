@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Veldrid.ImageSharp;
 using Veldrid.PBR.BinaryData;
+using Veldrid.PBR.Uniforms;
 
 namespace Veldrid.PBR
 {
@@ -45,17 +46,19 @@ namespace Veldrid.PBR
         public int NumSamplers => _chunks.Samplers.Count;
         public int NumTextures => _chunks.Textures.Count;
         public int NumUnlitMaterials => _chunks.UnlitMaterials.Count;
+        public int NumMetallicRoughnessMaterials => _chunks.MetallicRoughnessMaterials.Count;
+        public int NumSpecularGlossinessMaterials => _chunks.SpecularGlossinessMaterials.Count;
         public int NumMeshes => _chunks.Meshes.Count;
         public int NumNodes => _chunks.Nodes.Count;
 
-        public Texture GetOrCreateTexture(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
+        public Texture GetOrCreateTexture(uint index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
             if (index < 0)
                 return null;
             return _textures[index] ?? (_textures[index] = CreateTexture(index, graphicsDevice, resourceFactory));
         }
 
-        public Texture CreateTexture(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
+        public Texture CreateTexture(uint index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
             var textureData = _chunks.Textures.GetAt(_data, index);
             var textureBlob = new MemoryStream(_data.Span.Slice(GetBlob(textureData.BlobIndex)).ToArray());
@@ -75,7 +78,7 @@ namespace Veldrid.PBR
             return deviceBuffer;
         }
 
-        public void CreateSamplerDescription(int index, out SamplerDescription description)
+        public void CreateSamplerDescription(uint index, out SamplerDescription description)
         {
             ref var samplerData = ref _chunks.Samplers.GetAt(_data, index);
             description = new SamplerDescription(
@@ -91,14 +94,15 @@ namespace Veldrid.PBR
                 samplerData.BorderColor);
         }
 
-        public Sampler GetOrCreateSampler(int index, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
+        public Sampler GetOrCreateSampler(IdRef<SamplerData> id, GraphicsDevice graphicsDevice, ResourceFactory resourceFactory)
         {
-            if (index < 0)
+            if (!id.HasValue)
                 return graphicsDevice.Aniso4xSampler;
+            var index = id.Value;
             return _samplers[index] ?? (_samplers[index] = CreateSampler(index, resourceFactory));
         }
 
-        public Sampler CreateSampler(int index, ResourceFactory resourceFactory)
+        public Sampler CreateSampler(uint index, ResourceFactory resourceFactory)
         {
             CreateSamplerDescription(index, out var description);
             return resourceFactory.CreateSampler(description);
@@ -150,16 +154,50 @@ namespace Veldrid.PBR
             ref var unlitMaterialData = ref _chunks.UnlitMaterials.GetAt(_data, index);
             return new UnlitMaterial
             {
-                AlphaMode = unlitMaterialData.Base.AlphaMode,
-                AlphaCutoff = unlitMaterialData.Base.AlphaCutoff,
-                BaseColorFactor = unlitMaterialData.Base.BaseColorFactor,
-                FaceCullMode = unlitMaterialData.Base.FaceCullMode,
-                BaseColorMap = new MapParameters
-                {
-                    Sampler = GetOrCreateSampler(unlitMaterialData.BaseColorSampler, graphicsDevice, resourceFactory),
-                    Map = GetOrCreateTextureView(unlitMaterialData.BaseColorMap, graphicsDevice, resourceFactory),
-                    UV = unlitMaterialData.BaseColorMapUV
-                }
+                AlphaMode = unlitMaterialData.AlphaMode,
+                AlphaCutoff = unlitMaterialData.UniformArguments.AlphaCutoff,
+                BaseColorFactor = unlitMaterialData.UniformArguments.BaseColorFactor,
+                FaceCullMode = unlitMaterialData.FaceCullMode,
+                BaseColorMap = GetMapParameters(graphicsDevice, resourceFactory, unlitMaterialData.BaseColor, ref unlitMaterialData.UniformArguments.BaseColorMapUV)
+            };
+        }
+
+        public UnlitMaterial CreateMetallicRoughnessMaterial(int index, GraphicsDevice graphicsDevice,
+            ResourceFactory resourceFactory)
+        {
+            ref var unlitMaterialData = ref _chunks.MetallicRoughnessMaterials.GetAt(_data, index);
+            return new UnlitMaterial
+            {
+                AlphaMode = unlitMaterialData.AlphaMode,
+                AlphaCutoff = unlitMaterialData.UniformArguments.AlphaCutoff,
+                BaseColorFactor = unlitMaterialData.UniformArguments.BaseColorFactor,
+                FaceCullMode = unlitMaterialData.FaceCullMode,
+                BaseColorMap = GetMapParameters(graphicsDevice, resourceFactory, unlitMaterialData.BaseColor, ref unlitMaterialData.UniformArguments.BaseColorMapUV)
+            };
+        }
+
+        public UnlitMaterial CreateSpecularGlossinessMaterial(int index, GraphicsDevice graphicsDevice,
+            ResourceFactory resourceFactory)
+        {
+            ref var unlitMaterialData = ref _chunks.MetallicRoughnessMaterials.GetAt(_data, index);
+            return new UnlitMaterial
+            {
+                AlphaMode = unlitMaterialData.AlphaMode,
+                AlphaCutoff = unlitMaterialData.UniformArguments.AlphaCutoff,
+                BaseColorFactor = unlitMaterialData.UniformArguments.BaseColorFactor,
+                FaceCullMode = unlitMaterialData.FaceCullMode,
+                BaseColorMap = GetMapParameters(graphicsDevice, resourceFactory, unlitMaterialData.BaseColor, ref unlitMaterialData.UniformArguments.BaseColorMapUV)
+            };
+        }
+        
+        private MapParameters GetMapParameters(GraphicsDevice graphicsDevice, ResourceFactory resourceFactory,
+            MapAndSampler mapAndSampler, ref MapUV mapUv)
+        {
+            return new MapParameters
+            {
+                Sampler = GetOrCreateSampler(mapAndSampler.Sampler, graphicsDevice, resourceFactory),
+                Map = GetOrCreateTextureView(mapAndSampler.Map, graphicsDevice, resourceFactory),
+                UV = mapUv
             };
         }
 
@@ -217,11 +255,12 @@ namespace Veldrid.PBR
             return pos + size;
         }
 
-        private TextureView GetOrCreateTextureView(int index, GraphicsDevice graphicsDevice,
+        private TextureView GetOrCreateTextureView(IdRef<TextureData> id, GraphicsDevice graphicsDevice,
             ResourceFactory resourceFactory)
         {
-            if (index < 0)
+            if (!id.HasValue)
                 return null;
+            var index = id.Value;
             return _textureViews[index] ?? (_textureViews[index] =
                        resourceFactory.CreateTextureView(
                            new TextureViewDescription(GetOrCreateTexture(index, graphicsDevice, resourceFactory))));

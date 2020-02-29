@@ -18,6 +18,8 @@ namespace Veldrid.PBR
         public IList<TextureData> Textures { get; } = new List<TextureData>();
         public IList<SamplerData> Samplers { get; } = new List<SamplerData>();
         public IList<UnlitMaterialData> UnlitMaterials { get; } = new List<UnlitMaterialData>();
+        public IList<MetallicRoughnessMaterialData> MetallicRoughnessMaterials { get; } = new List<MetallicRoughnessMaterialData>();
+        public IList<SpecularGlossinessMaterialData> SpecularGlossinessMaterials { get; } = new List<SpecularGlossinessMaterialData>();
         public IList<MaterialReference> MaterialBindings { get; } = new List<MaterialReference>();
         public IList<VertexElementData> VertexElements { get; } = new List<VertexElementData>();
         public IList<VertexBufferViewData> BufferViews { get; } = new List<VertexBufferViewData>();

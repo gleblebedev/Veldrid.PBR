@@ -1,7 +1,6 @@
-﻿using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using Veldrid.PBR.DataStructures;
+using Veldrid.PBR.Uniforms;
 using Veldrid.PBR.Unlit;
 
 namespace Veldrid.PBR.ImageBasedLighting

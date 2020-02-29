@@ -1,4 +1,4 @@
-﻿using Veldrid.PBR.DataStructures;
+﻿using Veldrid.PBR.Uniforms;
 
 namespace Veldrid.PBR
 {
