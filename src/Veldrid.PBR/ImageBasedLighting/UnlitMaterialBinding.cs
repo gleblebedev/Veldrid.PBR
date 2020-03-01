@@ -3,21 +3,16 @@ using Veldrid.PBR.Unlit;
 
 namespace Veldrid.PBR.ImageBasedLighting
 {
-    public class ImageBasedLightingUnlitMaterial : IMaterial
+    public class UnlitMaterialBinding : MaterialBindingBase<UnlitMaterialArguments>, IMaterial
     {
         private readonly UnlitMaterial _material;
-        private readonly SimpleUniformPool<UnlitMaterialArguments> _uniformPool;
-        private readonly GraphicsDevice _graphicsDevice;
-        private readonly uint _offset;
 
-        public ImageBasedLightingUnlitMaterial(UnlitMaterial material,
-            SimpleUniformPool<UnlitMaterialArguments> uniformPool, GraphicsDevice graphicsDevice,
-            ResourceCache resourceCache)
+        public UnlitMaterialBinding(UnlitMaterial material,
+            SimpleUniformPool<UnlitMaterialArguments> uniformPool,
+            GraphicsDevice graphicsDevice,
+            ResourceCache resourceCache) : base(uniformPool)
         {
             _material = material;
-            _uniformPool = uniformPool;
-            _graphicsDevice = graphicsDevice;
-            _offset = _uniformPool.Allocate();
             ShaderFlags = UnlitShaderFlags.None;
             if (material.BaseColorMap.Map != null)
             {
@@ -31,11 +26,12 @@ namespace Veldrid.PBR.ImageBasedLighting
                         ShaderStages.Fragment, ResourceLayoutElementOptions.None)
                 );
                 ResourceLayout = resourceCache.GetResourceLayout(resourceLayoutDescription);
-                ResourceSet = new ResourceSetAndOffsets(resourceCache.GetResourceSet(new ResourceSetDescription(
+                var resourceSetDescription = new ResourceSetDescription(
                     ResourceLayout,
                     uniformPool.BindableResource,
                     material.BaseColorMap.Map,
-                    material.BaseColorMap.Sampler ?? _graphicsDevice.Aniso4xSampler)), _offset);
+                    material.BaseColorMap.Sampler ?? graphicsDevice.Aniso4xSampler);
+                ResourceSet = new ResourceSetAndOffsets(resourceCache.GetResourceSet(resourceSetDescription), _offset);
             }
             else
             {
@@ -44,9 +40,10 @@ namespace Veldrid.PBR.ImageBasedLighting
                         ShaderStages.Vertex | ShaderStages.Fragment, ResourceLayoutElementOptions.DynamicBinding)
                 );
                 ResourceLayout = resourceCache.GetResourceLayout(resourceLayoutDescription);
-                ResourceSet = new ResourceSetAndOffsets(graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(
+                var resourceSetDescription = new ResourceSetDescription(
                     ResourceLayout,
-                    uniformPool.BindableResource)), _offset);
+                    uniformPool.BindableResource);
+                ResourceSet = new ResourceSetAndOffsets(graphicsDevice.ResourceFactory.CreateResourceSet(resourceSetDescription), _offset);
             }
 
             Update();
@@ -57,16 +54,10 @@ namespace Veldrid.PBR.ImageBasedLighting
         public ResourceSetAndOffsets ResourceSet { get; }
 
         public UnlitShaderFlags ShaderFlags { get; }
+
         public FaceCullMode CullMode => _material.FaceCullMode;
 
-        public void Dispose()
-        {
-            //If resource set aquired via cache there is no need to dispose it.
-            //ResourceSet.ResourceSet?.Dispose();
-            _uniformPool.Release(_offset);
-        }
-
-        public void Update()
+        public override void Update()
         {
             var args = new UnlitMaterialArguments
             {
@@ -74,7 +65,7 @@ namespace Veldrid.PBR.ImageBasedLighting
                 AlphaCutoff = _material.AlphaCutoff,
                 BaseColorMapUV = _material.BaseColorMap.UV
             };
-            _uniformPool.UpdateBuffer(_offset, ref args);
+            UpdateBuffer(ref args);
         }
     }
 }

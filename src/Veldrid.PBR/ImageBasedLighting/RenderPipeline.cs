@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Veldrid.PBR.Uniforms;
 using Veldrid.PBR.Unlit;
@@ -20,6 +21,8 @@ namespace Veldrid.PBR.ImageBasedLighting
         private readonly UnlitShaderFactory _unlitShaderFactory;
         private readonly UnlitTechnique _unlitTechnique;
         private readonly SimpleUniformPool<UnlitMaterialArguments> _unlitArgumentsPool;
+        private readonly SimpleUniformPool<MetallicRoughnessMaterialArguments> _metallicRoughnessArgumentsPool;
+        private readonly SimpleUniformPool<SpecularGlossinessMaterialArguments> _specularGlossinessArgumentsPool;
 
         public RenderPipeline(GraphicsDevice graphicsDevice, ResourceCache resourceCache,
             OutputDescription outputDescription,
@@ -34,11 +37,15 @@ namespace Veldrid.PBR.ImageBasedLighting
                 new BufferDescription((uint) Marshal.SizeOf<ViewProjection>(),
                     BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             _unlitArgumentsPool = new SimpleUniformPool<UnlitMaterialArguments>(1024, _graphicsDevice);
+            _metallicRoughnessArgumentsPool = new SimpleUniformPool<MetallicRoughnessMaterialArguments>(1024, _graphicsDevice);
+            _specularGlossinessArgumentsPool = new SimpleUniformPool<SpecularGlossinessMaterialArguments>(1024, _graphicsDevice);
 
             ModelViewProjectionResourceLayout = ResourceCache.GetResourceLayout(ProjViewModelLayoutDescription);
-            ModelViewProjectionResourceSet = ResourceCache.GetResourceSet(new ResourceSetDescription(
-                ModelViewProjectionResourceLayout, _projViewBuffer,
-                _nodeProperties.BindableResource));
+            var resourceSetDescription = new ResourceSetDescription(
+                ModelViewProjectionResourceLayout,
+                _projViewBuffer,
+                _nodeProperties.BindableResource);
+            ModelViewProjectionResourceSet = ResourceCache.GetResourceSet(resourceSetDescription);
 
             _unlitShaderFactory = new UnlitShaderFactory(_graphicsDevice.ResourceFactory);
             _unlitTechnique = new UnlitTechnique(_unlitShaderFactory, this);
@@ -49,6 +56,7 @@ namespace Veldrid.PBR.ImageBasedLighting
         public OutputDescription OutputDescription { get; }
 
         public ResourceSet ModelViewProjectionResourceSet { get; }
+
         public ResourceLayout ModelViewProjectionResourceLayout { get; }
 
         public void UpdateViewProjection(CommandList commandList, ref Matrix4x4 projection, ref Matrix4x4 view)
@@ -61,7 +69,7 @@ namespace Veldrid.PBR.ImageBasedLighting
 
         public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(IMaterial unlitMaterial, ref PrimitiveDrawCall drawCall)
         {
-            if (unlitMaterial is ImageBasedLightingUnlitMaterial imageBasedLightingUnlitMaterial)
+            if (unlitMaterial is UnlitMaterialBinding imageBasedLightingUnlitMaterial)
                 return _unlitTechnique.BindMaterial(imageBasedLightingUnlitMaterial, ref drawCall);
             return null;
         }
@@ -71,10 +79,21 @@ namespace Veldrid.PBR.ImageBasedLighting
             _projViewBuffer.Dispose();
         }
 
-        public IMaterial CreateMaterial(UnlitMaterial unlitMaterial)
+        public IMaterial CreateMaterial(MaterialBase material)
         {
-            return new ImageBasedLightingUnlitMaterial(unlitMaterial, _unlitArgumentsPool, _graphicsDevice,
-                ResourceCache);
+            if (material is UnlitMaterial unlitMaterial)
+            {
+                return new UnlitMaterialBinding(unlitMaterial, _unlitArgumentsPool, _graphicsDevice, ResourceCache);
+            }
+            else if (material is MetallicRoughness metallicRoughness)
+            {
+                return new MetallicRoughnessMaterialBinding(metallicRoughness, _metallicRoughnessArgumentsPool, _graphicsDevice, ResourceCache);
+            }
+            else if (material is SpecularGlossiness specularGlossiness)
+            {
+                return new SpecularGlossinessMaterialBinding(specularGlossiness, _specularGlossinessArgumentsPool, _graphicsDevice, ResourceCache);
+            }
+            throw new ArgumentException("Unrecognized material. It should be one of the following: "+nameof(UnlitMaterial)+", " + nameof(MetallicRoughness) + ", " + nameof(SpecularGlossiness));
         }
     }
 }

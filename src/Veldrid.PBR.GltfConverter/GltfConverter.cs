@@ -533,9 +533,9 @@ namespace Veldrid.PBR
         {
             foreach (var valueTuple in primitive.GetTriangleIndices())
             {
-                yield return valueTuple.C;
-                yield return valueTuple.B;
                 yield return valueTuple.A;
+                yield return valueTuple.B;
+                yield return valueTuple.C;
             }
         }
 

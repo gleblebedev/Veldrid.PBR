@@ -16,7 +16,7 @@ namespace Veldrid.PBR.Unlit
         }
 
         public IMaterialBinding<ImageBasedLightingPasses> BindMaterial(
-            ImageBasedLightingUnlitMaterial material,
+            ImageBasedLighting.UnlitMaterialBinding material,
             ref PrimitiveDrawCall drawCall)
         {
             var shaders =
